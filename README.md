@@ -1,5 +1,6 @@
 ***Contributing Scenario***
 
+
 1. First Clone the Repository 
 ```bash
     git clone https://github.com/Rashedul2001/Hotel-Management-System-Frontend-NextJS.git
@@ -9,12 +10,14 @@
     npm install
 ```
 3.set the environment correctly 
+
 4. run the web application via this command 
 ```bash
     npm run dev
 ```
 
 ***Contributing Scenario***
+
 
 1.fork the repo 
 
@@ -24,6 +27,6 @@
 
 4.create another branch
 
-5.merge and push 
+5.edit push to origin   
 
-6.set a pull request
+6.create a pull request
