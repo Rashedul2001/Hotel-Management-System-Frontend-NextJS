@@ -11,7 +11,7 @@ Follow these steps to set up and run the project locally.
 
 ### 1. Clone the Repository
 ```bash
-git clone [https://github.com/Rashedul2001/Hotel-Management-System-Frontend-NextJS.git](https://github.com/Rashedul2001/Hotel-Management-System-Frontend-NextJS.git)
+git clone https://github.com/Rashedul2001/Hotel-Management-System-Frontend-NextJS.git
 cd Hotel-Management-System-Frontend-NextJS
 
 ```
