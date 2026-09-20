@@ -9,3 +9,4 @@
 
 7. create a Action Center in the avatar dropdown so that we can assing general and emergency tasks to staffs  also it has to delever notifications to the staffs  
 8. give a skeleton to the navbar 
+9.remove username feature leave only email login in the login modal 
