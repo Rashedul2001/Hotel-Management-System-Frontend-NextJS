@@ -70,9 +70,6 @@ export default function ProfileRoute() {
             // onTwoFactorToggle={async (enabled) => {
             //     console.log("TODO: POST toggle-two-factor", enabled);
             // }}
-            // onPhotoChange={async (file) => {
-            //     console.log("TODO: POST profile-photo", file);
-            // }}
             // onNotificationPreferencesChange={async (preferences) => {
             //     console.log("TODO: PUT notification-preferences", preferences);
             // }}

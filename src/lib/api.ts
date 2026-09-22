@@ -8,12 +8,16 @@ export async function apiFetch(
     endpoint: string,
     options: RequestInit = {}
 ) {
+    const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+
     return fetch(`${API_URL}${endpoint}`, {
         ...options,
         credentials: "include",
-        headers: {
-            "Content-Type": "application/json",
-            ...options.headers,
-        },
+        headers: isFormData
+            ? options.headers
+            : {
+                  "Content-Type": "application/json",
+                  ...options.headers,
+              },
     });
 }
