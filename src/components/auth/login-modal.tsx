@@ -21,7 +21,7 @@ import { errorToast, successToast } from "@/components/ui/toast";
 import { useAuth } from "@/providers/AuthContext";
 
 export interface LoginFormValues {
-  EmailOrUserName: string;
+  Email: string;
   Password: string;
   RememberMe: boolean;
 }
@@ -48,13 +48,14 @@ export function LoginModal({
   } = useForm<LoginFormValues>({
     mode: "onBlur",
     defaultValues: {
-      EmailOrUserName: "",
+      Email: "",
       Password: "",
       RememberMe: false,
     },
   });
 
   const onSubmit = async (values: LoginFormValues) => {
+    console.log(JSON.stringify(values));
     try {
       const response = await apiFetch("/api/auth/login?useCookies=true", {
         method: "POST",
@@ -123,7 +124,7 @@ export function LoginModal({
             className="space-y-4"
           >
             <div className="space-y-2">
-              <Label htmlFor="login-emailOrUserName">Email or username</Label>
+              <Label htmlFor="login-email">Email</Label>
 
               <div className="relative">
                 <FiUser
@@ -131,21 +132,21 @@ export function LoginModal({
                   aria-hidden="true"
                 />
                 <Input
-                  id="login-emailOrUserName"
+                  id="login-email"
                   type="text"
                   placeholder="you@example.com"
-                  autoComplete="username"
-                  aria-invalid={!!errors.EmailOrUserName}
+                  autoComplete="email"
+                  aria-invalid={!!errors.Email}
                   className="h-11 rounded-xl pl-10"
-                  {...register("EmailOrUserName", {
-                    required: "Enter your email or username.",
+                  {...register("Email", {
+                    required: "Enter your email.",
                   })}
                 />
               </div>
 
-              {errors.EmailOrUserName && (
+              {errors.Email && (
                 <p className="text-sm text-destructive">
-                  {errors.EmailOrUserName.message}
+                  {errors.Email.message}
                 </p>
               )}
             </div>

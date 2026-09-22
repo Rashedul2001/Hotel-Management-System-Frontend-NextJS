@@ -2,7 +2,6 @@
 
 export interface SessionUser {
     id: string
-    userName: string
     email: string
 }
 
