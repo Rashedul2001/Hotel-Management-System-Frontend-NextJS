@@ -25,11 +25,7 @@ import {
 } from "react-icons/fi";
 
 import { Button } from "../ui/button";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "../ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 import {
   DropdownMenu,
@@ -116,8 +112,7 @@ export function Navbar() {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
-  const userInitial =
-    user?.fullName?.trim().charAt(0).toUpperCase() || "U";
+  const userInitial = user?.email?.trim().charAt(0).toUpperCase() || "U";
 
   return (
     <>
@@ -134,7 +129,6 @@ export function Navbar() {
       <header className="sticky top-0 z-50 w-full border-b shadow-sm border-border/60 bg-background/90 backdrop-blur-xl">
         <div className="w-full px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4 h-18 min-h-18">
-
             {/* ---------------------------------------------------------------- */}
             {/* Logo                                                             */}
             {/* ---------------------------------------------------------------- */}
@@ -145,9 +139,7 @@ export function Navbar() {
               aria-label="Velora Hotels home"
             >
               <div className="flex items-center justify-center w-10 h-10 transition-transform duration-300 shadow-sm rounded-xl bg-primary text-primary-foreground group-hover:scale-105">
-                <span className="text-lg font-semibold hotel-display">
-                  V
-                </span>
+                <span className="text-lg font-semibold hotel-display">V</span>
               </div>
 
               <div className="flex flex-col leading-none">
@@ -181,7 +173,7 @@ export function Navbar() {
                       "relative flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200",
                       active
                         ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                   >
                     <item.icon className="w-4 h-4" />
@@ -201,7 +193,6 @@ export function Navbar() {
             {/* ---------------------------------------------------------------- */}
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-
               {/* Notifications */}
               {isAuthenticated && (
                 <button
@@ -240,7 +231,7 @@ export function Navbar() {
                       >
                         <Avatar className="w-10 h-10 border border-primary/20">
                           <AvatarImage
-                            src=""
+                            src={user?.profilePictureUrl ?? ""}
                             alt={user?.fullName || "User"}
                           />
 
@@ -270,34 +261,40 @@ export function Navbar() {
                     <DropdownMenuSeparator />
 
                     <DropdownMenuGroup>
-                      <DropdownMenuItem >
-                        <Link
-                          href="/profile"
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <FiUser className="w-4 h-4" />
-                          My Profile
-                        </Link>
+                      <DropdownMenuItem
+                        render={
+                          <Link
+                            href="/profile"
+                            className="flex w-full cursor-pointer items-center gap-2"
+                          />
+                        }
+                      >
+                        <FiUser className="w-4 h-4" />
+                        My Profile
                       </DropdownMenuItem>
 
-                      <DropdownMenuItem >
-                        <Link
-                          href="admin/dashboard"
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <FiGrid className="w-4 h-4" />
-                          Dashboard
-                        </Link>
+                      <DropdownMenuItem
+                        render={
+                          <Link
+                            href="/admin/dashboard"
+                            className="flex w-full cursor-pointer items-center gap-2"
+                          />
+                        }
+                      >
+                        <FiGrid className="w-4 h-4" />
+                        Dashboard
                       </DropdownMenuItem>
 
-                      <DropdownMenuItem >
-                        <Link
-                          href="/rooms"
-                          className="flex items-center gap-2 cursor-pointer"
-                        >
-                          <FiCalendar className="w-4 h-4" />
-                          Book a Room
-                        </Link>
+                      <DropdownMenuItem
+                        render={
+                          <Link
+                            href="/rooms"
+                            className="flex w-full cursor-pointer items-center gap-2"
+                          />
+                        }
+                      >
+                        <FiCalendar className="w-4 h-4" />
+                        Book a Room
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
 
@@ -328,7 +325,9 @@ export function Navbar() {
               <button
                 type="button"
                 aria-label={
-                  mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"
+                  mobileMenuOpen
+                    ? "Close navigation menu"
+                    : "Open navigation menu"
                 }
                 aria-expanded={mobileMenuOpen}
                 onClick={toggleMobileMenu}
@@ -353,12 +352,10 @@ export function Navbar() {
             "fixed inset-x-0 top-18 z-50 border-b border-border bg-background shadow-xl transition-all duration-300 lg:hidden",
             mobileMenuOpen
               ? "translate-y-0 opacity-100"
-              : "pointer-events-none -translate-y-4 opacity-0"
+              : "pointer-events-none -translate-y-4 opacity-0",
           )}
         >
           <div className="mx-auto max-h-[calc(100dvh-4.5rem)] w-full max-w-7xl overflow-y-auto px-4 py-5 sm:px-6">
-
-
             {/* Mobile links */}
             <nav className="space-y-1" aria-label="Mobile navigation">
               {NAV_ITEMS.map((item) => {
@@ -374,7 +371,7 @@ export function Navbar() {
                       "flex items-center justify-between rounded-xl px-4 py-3.5 text-base font-medium transition-all duration-200",
                       active
                         ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-foreground hover:bg-muted"
+                        : "text-foreground hover:bg-muted",
                     )}
                   >
                     <span className="flex items-center gap-3">
@@ -421,6 +418,11 @@ export function Navbar() {
                     className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted"
                   >
                     <Avatar className="h-9 w-9">
+                      <AvatarImage
+                        src={user?.profilePictureUrl ?? ""}
+                        alt={user?.fullName || "User"}
+                      />
+
                       <AvatarFallback className="bg-primary text-primary-foreground">
                         {userInitial}
                       </AvatarFallback>
