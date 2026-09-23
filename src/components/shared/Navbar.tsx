@@ -302,14 +302,7 @@ export function Navbar() {
                         Book a Room
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
-                    <DropdownMenuItem
-                      render={
-                        <button
-                          onClick={() => setNotifOpen(true)}
-                          className="flex items-center w-full gap-2 cursor-pointer"
-                        />
-                      }
-                    >
+                    <DropdownMenuItem onClick={() => setNotifOpen(true)} className={"cursor-pointer md:hidden"}>
                       <FiBell className="w-4 h-4" />
                       Notification
                     </DropdownMenuItem>
