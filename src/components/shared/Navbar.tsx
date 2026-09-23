@@ -37,6 +37,7 @@ import {
 } from "../ui/dropdown-menu";
 
 import NotificationModal from "./NotificationModal";
+import { Skeleton } from "../ui/skeleton";
 
 /* -------------------------------------------------------------------------- */
 /* Navigation                                                                 */
@@ -77,7 +78,7 @@ export function Navbar() {
 
   const { resolvedTheme, setTheme } = useTheme();
   const { openLogin } = useAuthModal();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
 
   const toggleTheme = () => {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
@@ -193,20 +194,6 @@ export function Navbar() {
             {/* ---------------------------------------------------------------- */}
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* Notifications */}
-              {isAuthenticated && (
-                <button
-                  type="button"
-                  aria-label="Open notifications"
-                  onClick={() => setNotifOpen(true)}
-                  className="relative items-center justify-center hidden w-10 h-10 transition-all duration-200 border rounded-full border-border bg-background hover:border-primary/40 hover:bg-primary/5 hover:text-primary md:flex"
-                >
-                  <FiBell className="h-4.5 w-4.5" />
-
-                  <span className="absolute right-2.5 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
-                </button>
-              )}
-
               {/* Theme */}
               <button
                 type="button"
@@ -218,6 +205,24 @@ export function Navbar() {
 
                 <FiMoon className="absolute h-4.5 w-4.5 scale-0 rotate-90 text-slate-400 transition-all dark:scale-100 dark:rotate-0" />
               </button>
+
+              {/* Notifications */}
+              {isLoading ? (
+                <Skeleton className="hidden rounded-full size-10 shrink-0 md:flex " />
+              ) : (
+                isAuthenticated && (
+                  <button
+                    type="button"
+                    aria-label="Open notifications"
+                    onClick={() => setNotifOpen(true)}
+                    className="relative items-center justify-center hidden w-10 h-10 transition-all duration-200 border rounded-full border-border bg-background hover:border-primary/40 hover:bg-primary/5 hover:text-primary md:flex"
+                  >
+                    <FiBell className="h-4.5 w-4.5" />
+
+                    <span className="absolute right-2.5 top-2 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+                  </button>
+                )
+              )}
 
               {/* Auth */}
               {isAuthenticated ? (
@@ -265,7 +270,7 @@ export function Navbar() {
                         render={
                           <Link
                             href="/profile"
-                            className="flex w-full cursor-pointer items-center gap-2"
+                            className="flex items-center w-full gap-2 cursor-pointer"
                           />
                         }
                       >
@@ -277,7 +282,7 @@ export function Navbar() {
                         render={
                           <Link
                             href="/admin/dashboard"
-                            className="flex w-full cursor-pointer items-center gap-2"
+                            className="flex items-center w-full gap-2 cursor-pointer"
                           />
                         }
                       >
@@ -289,7 +294,7 @@ export function Navbar() {
                         render={
                           <Link
                             href="/rooms"
-                            className="flex w-full cursor-pointer items-center gap-2"
+                            className="flex items-center w-full gap-2 cursor-pointer"
                           />
                         }
                       >
@@ -297,6 +302,17 @@ export function Navbar() {
                         Book a Room
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
+                    <DropdownMenuItem
+                      render={
+                        <button
+                          onClick={() => setNotifOpen(true)}
+                          className="flex items-center w-full gap-2 cursor-pointer"
+                        />
+                      }
+                    >
+                      <FiBell className="w-4 h-4" />
+                      Notification
+                    </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
 
@@ -310,6 +326,8 @@ export function Navbar() {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              ) : isLoading ? (
+                <Skeleton className="size-10 shrink-0 rounded-full mr-0.5" />
               ) : (
                 <Button
                   type="button"
