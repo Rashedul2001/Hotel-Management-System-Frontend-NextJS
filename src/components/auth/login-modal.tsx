@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { FiEye, FiEyeOff, FiLock, FiUser } from "react-icons/fi";
-import { FaHotel } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -207,7 +206,7 @@ export function LoginModal({
             <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
               <input
                 type="checkbox"
-                className="size-4 rounded border-input accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="size-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 {...register("RememberMe")}
               />
               Keep me signed in

@@ -451,7 +451,7 @@ export function Navbar() {
                   </Link>
 
                   <Link
-                    href="admin/dashboard"
+                    href="/admin/dashboard"
                     onClick={closeMobileMenu}
                     className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl hover:bg-muted"
                   >

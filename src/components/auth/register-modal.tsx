@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { FiEye, FiEyeOff, FiLock, FiMail, FiUser } from "react-icons/fi";
-import { FaHotel } from "react-icons/fa6";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +61,7 @@ export function RegisterModal({
 
   const onSubmit = async (values: RegisterFormValues) => {
     try {
+      console.log(JSON.stringify(values))
       const response = await apiFetch("/api/auth/register", {
         method: "POST",
         headers: {
@@ -264,6 +264,7 @@ export function RegisterModal({
                     {...register("ConfirmPassword", {
                       required: "Confirm your password.",
                       validate: (value) =>
+                        // eslint-disable-next-line react-hooks/incompatible-library
                         value === watch("Password") || "Passwords don't match.",
                     })}
                   />
@@ -295,7 +296,7 @@ export function RegisterModal({
               <label className="flex cursor-pointer items-start gap-3 text-sm text-muted-foreground">
                 <input
                   type="checkbox"
-                  className="mt-0.5 size-4 shrink-0 rounded border-input accent-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="mt-0.5 size-4 shrink-0 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   aria-invalid={!!errors.AcceptTerms}
                   {...register("AcceptTerms", {
                     required: "You must accept the terms to continue.",
