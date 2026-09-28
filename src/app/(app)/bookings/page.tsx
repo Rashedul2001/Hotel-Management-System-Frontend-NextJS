@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import MyBookings from "@/components/hotel/my-bookings";
+import { ProtectedContent } from "@/providers/protected-content";
 
 export const metadata: Metadata = {
   title: "My Bookings | Velora Hotels",
@@ -8,5 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default function BookingsPage() {
-  return <MyBookings />;
+  return (
+    <ProtectedContent>
+      <MyBookings />
+    </ProtectedContent>
+  );
 }

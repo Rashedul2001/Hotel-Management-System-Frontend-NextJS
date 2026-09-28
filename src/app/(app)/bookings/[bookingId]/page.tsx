@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import BookingDetails from "@/components/hotel/booking-details";
+import { ProtectedContent } from "@/providers/protected-content";
 
 const mockBookings = [
   {
@@ -167,5 +168,9 @@ export default async function BookingPage({
     notFound();
   }
 
-  return <BookingDetails booking={booking} />;
+  return (
+    <ProtectedContent>
+      <BookingDetails booking={booking} />
+    </ProtectedContent>
+  );
 }

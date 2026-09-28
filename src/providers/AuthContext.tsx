@@ -1,6 +1,6 @@
 "use client";
 
-import { AuthUser } from "@/types/auth-user";
+import type { AuthUser } from "@/types/auth-user";
 
 import {
     createContext,
@@ -47,6 +47,8 @@ export function AuthProvider({
                     credentials: "include",
                 }
             );
+            // console.log("Session check response:", response);
+            // console.log("Session check response data:", await response.json());
 
             if (response.status === 401) {
                 setUser(null);
@@ -58,7 +60,6 @@ export function AuthProvider({
             }
 
             const data: AuthUser = await response.json();
-
             setUser(data);
         } catch (error) {
             console.error("Failed to get current user:", error);

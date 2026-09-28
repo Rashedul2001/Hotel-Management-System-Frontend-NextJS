@@ -1,7 +1,4 @@
-1./api/auth/me is fetched although user is not logged in handle this gracefully
-
 3. there will be this error while server is not up "[browser] Failed to get current user: TypeError: NetworkError when attempting to fetch resource. (src/providers/AuthContext.tsx:70:9)" make it a user friendly toast message 
-
 
 5. theme is not applying back to it's previous theme while going from  404 page to home it is going back to light always. fix this 
 
