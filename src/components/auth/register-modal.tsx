@@ -61,7 +61,6 @@ export function RegisterModal({
 
   const onSubmit = async (values: RegisterFormValues) => {
     try {
-      console.log(JSON.stringify(values))
       const response = await apiFetch("/api/auth/register", {
         method: "POST",
         headers: {

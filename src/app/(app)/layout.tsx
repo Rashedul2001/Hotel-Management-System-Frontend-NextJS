@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import Navbar from "@/components/shared/Navbar";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthModalProvider } from "@/providers/auth-modal-context";
-import { SessionProvider } from "@/providers/session-context";
 import { Toaster } from 'sonner';
 import { AuthProvider } from "@/providers/AuthContext";
 import Footer from "@/components/shared/footer";
@@ -57,13 +56,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 
           <AuthProvider>
             <AuthModalProvider>
-              <SessionProvider>
-
-                <Navbar />
-                {children}
-                <Footer/>
-
-              </SessionProvider>
+              <Navbar />
+              {children}
+              <Footer/>
             </AuthModalProvider>
           </AuthProvider>
 

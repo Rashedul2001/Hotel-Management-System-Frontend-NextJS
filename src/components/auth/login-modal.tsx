@@ -54,7 +54,6 @@ export function LoginModal({
   });
 
   const onSubmit = async (values: LoginFormValues) => {
-    console.log(JSON.stringify(values));
     try {
       const response = await apiFetch("/api/auth/login?useCookies=true", {
         method: "POST",

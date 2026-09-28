@@ -7,6 +7,7 @@ import {
     useCallback,
     useContext,
     useEffect,
+    useRef,
     useState,
 } from "react";
 
@@ -35,6 +36,7 @@ export function AuthProvider({
 }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const hasCheckedInitialSession = useRef(false);
 
     const refreshUser = useCallback(async () => {
         try {
@@ -46,9 +48,13 @@ export function AuthProvider({
                 }
             );
 
-            if (!response.ok) {
+            if (response.status === 401) {
                 setUser(null);
                 return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`Session check failed: ${response.status}`);
             }
 
             const data: AuthUser = await response.json();
@@ -64,7 +70,11 @@ export function AuthProvider({
     }, []);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (hasCheckedInitialSession.current) {
+            return;
+        }
+
+        hasCheckedInitialSession.current = true;
         refreshUser();
     }, [refreshUser]);
 

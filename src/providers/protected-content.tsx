@@ -2,7 +2,7 @@
 
 import * as React from "react"
 
-import { useSession } from "@/providers/session-context"
+import { useAuth } from "@/providers/AuthContext"
 import { useAuthModal } from "@/providers/auth-modal-context"
 
 interface ProtectedContentProps {
@@ -14,13 +14,18 @@ interface ProtectedContentProps {
 /**
  * Wrap the body of a protected page in this. It doesn't redirect — it keeps
  * the page mounted, blurs/hides the real content, and opens the login modal
- * on top of it. Once `useSession()` flips to "authenticated" (e.g. right
+ * on top of it. Once auth flips to "authenticated" (e.g. right
  * after a successful login), the real content is revealed automatically.
  */
 export function ProtectedContent({ children, fallback }: ProtectedContentProps) {
-    const { status } = useSession()
+        const { isLoading, isAuthenticated } = useAuth()
     const { openLogin, view } = useAuthModal()
     const hasPromptedRef = React.useRef(false)
+        const status = isLoading
+                ? "loading"
+                : isAuthenticated
+                    ? "authenticated"
+                    : "unauthenticated"
 
     React.useEffect(() => {
         if (status === "unauthenticated" && !hasPromptedRef.current) {
