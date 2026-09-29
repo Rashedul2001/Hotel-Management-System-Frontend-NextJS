@@ -1,202 +1,240 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { useForm } from "react-hook-form"
-import { EyeIcon, EyeOffIcon } from "lucide-react"
+import * as React from "react";
+import { useForm } from "react-hook-form";
+import { FiEye, FiEyeOff, FiLock, FiUser } from "react-icons/fi";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from "@/components/ui/dialog"
-import { SocialAuthButtons } from "./social-auth-buttons"
-import { apiFetch } from "@/lib/api"
-import { errorToast, successToast } from "@/components/ui/toast"
-import { useAuth } from "@/providers/AuthContext"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { SocialAuthButtons } from "./social-auth-buttons";
+import { apiFetch } from "@/lib/api";
+import { errorToast, successToast } from "@/components/ui/toast";
+import { useAuth } from "@/providers/AuthContext";
 
 export interface LoginFormValues {
-    EmailOrUserName: string
-    Password: string
-    RememberMe: boolean
+  Email: string;
+  Password: string;
+  RememberMe: boolean;
 }
 
 interface LoginModalProps {
-    open: boolean
-    onOpenChange: (open: boolean) => void
-    onSwitchToRegister: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSwitchToRegister: () => void;
 }
 
-export function LoginModal({ open, onOpenChange, onSwitchToRegister, }: LoginModalProps) {
+export function LoginModal({
+  open,
+  onOpenChange,
+  onSwitchToRegister,
+}: LoginModalProps) {
+  const { refreshUser } = useAuth();
+  const [showPassword, setShowPassword] = React.useState(false);
 
-    const{refreshUser} = useAuth();
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormValues>({
+    mode: "onBlur",
+    defaultValues: {
+      Email: "",
+      Password: "",
+      RememberMe: false,
+    },
+  });
 
-    const [showPassword, setShowPassword] = React.useState(false)
+  const onSubmit = async (values: LoginFormValues) => {
+    try {
+      const response = await apiFetch("/api/auth/login?useCookies=true", {
+        method: "POST",
+        body: JSON.stringify(values),
+      });
 
-    const {
-        register,
-        handleSubmit,
-        reset,
-        formState: { errors, isSubmitting },
-    } = useForm<LoginFormValues>({
-        mode: "onBlur",
-        defaultValues: {
-            EmailOrUserName: "",
-            Password: "",
-            RememberMe: false,
-        },
-    })
+      if (!response.ok) {
+        const data = await response.json();
+        errorToast(
+          data.message ?? "Invalid email or password.",
+          "Please check your credentials and try again.",
+        );
+        return;
+      }
 
-    const onSubmit = async (values: LoginFormValues) => {
-        try {
-            const response = await apiFetch(
-                "/api/auth/login?useCookies=true",
-                {
-                    method: "POST",
-                    body: JSON.stringify(
-                        values
-                    ),
-                }
-            );
+      await refreshUser();
 
-            if (!response.ok) {
-                const data = await response.json();
-                errorToast(
-                    data.message ?? "Invalid email or password.",
-                    "Please try again."
-                );
+      successToast("Login successful.", "Welcome back to Velora.");
+      onOpenChange(false);
+      reset();
+    } catch {
+      errorToast(
+        "Unable to connect to the server.",
+        "Please try again in a moment.",
+      );
+    }
+  };
 
-                return;
-            }
-            // this is the key part where we refresh the user context after a successful login
-            await refreshUser();
-
-
-            successToast(
-                "Login successful.",
-                "Welcome back!"
-            );
-
-            onOpenChange(false);
-            reset();
-
-        } catch {
-            errorToast(
-                "Unable to connect to the server.",
-                "Please try again."
-            );
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        onOpenChange(nextOpen);
+        if (!nextOpen) {
+          reset();
+          setShowPassword(false);
         }
-    };
+      }}
+    >
+      <DialogContent className="w-[calc(100%-1.5rem)] max-w-md gap-0 overflow-hidden rounded-2xl border-border bg-background p-0 shadow-2xl sm:w-full">
+        <div className="h-1.5 w-full bg-primary" />
 
-    return (
-        <Dialog
-            open={open}
-            onOpenChange={(nextOpen) => {
-                onOpenChange(nextOpen)
-                if (!nextOpen) reset()
-            }}
-        >
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Welcome back!</DialogTitle>
-                    <h2 className="text-xl">Login to your account</h2>
-                    <DialogDescription>
-                        It&apos;s nice to see you again. Let&apos;s book a room.
-                    </DialogDescription>
-                </DialogHeader>
+        <div className="max-h-[90vh] overflow-y-auto p-5 sm:p-7">
+          <DialogHeader className="mb-6 text-center">
+            <div className="flex mx-auto mb-4 h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-transform duration-300 group-hover:scale-105">
+              <span className=" hotel-display text-lg font-semibold">V</span>
+            </div>
 
-                <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-                    <div className="space-y-1.5">
-                        <Label htmlFor="login-emailOrUserName" className="sr-only">
-                            Email or username
-                        </Label>
-                        <Input
-                            id="login-emailOrUserName"
-                            type="text"
-                            placeholder="Email or Username"
-                            autoComplete="username"
-                            aria-invalid={!!errors.EmailOrUserName}
-                            {...register("EmailOrUserName", {
-                                required: "Enter your email or username.",
-                            })}
-                        />
-                        {errors.EmailOrUserName && (
-                            <p className="text-red-500 text-sm">
-                                {errors.EmailOrUserName.message}
-                            </p>
-                        )}
-                    </div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+              Velora Hotels
+            </p>
 
-                    <div className="space-y-1.5">
-                        <Label htmlFor="login-password" className="sr-only">
-                            Password
-                        </Label>
-                        <div className="relative">
-                            <Input
-                                id="login-password"
-                                type={showPassword ? "text" : "password"}
-                                placeholder="Password"
-                                autoComplete="current-password"
-                                aria-invalid={!!errors.Password}
-                                className="pr-10"
-                                {...register("Password", {
-                                    required: "Enter your password.",
-                                })}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword((v) => !v)}
-                                className="right-0 absolute inset-y-0 flex justify-center items-center w-10 text-gray-400 hover:text-gray-200"
-                                aria-label={showPassword ? "Hide password" : "Show password"}
-                            >
-                                {showPassword ? (
-                                    <EyeOffIcon className="w-4 h-4" />
-                                ) : (
-                                    <EyeIcon className="w-4 h-4" />
-                                )}
-                            </button>
-                        </div>
-                        {errors.Password && (
-                            <p className="text-red-500 text-sm">{errors.Password.message}</p>
-                        )}
-                    </div>
+            <DialogTitle className="hotel-display text-2xl font-semibold tracking-tight sm:text-3xl">
+              Welcome back
+            </DialogTitle>
 
-                    <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-                        {isSubmitting ? "Logging in…" : "Log In"}
-                    </Button>
+            <DialogDescription className="mx-auto mt-2 max-w-sm text-sm leading-6 text-muted-foreground">
+              Sign in to manage your reservations, stays, and personalized hotel
+              experience.
+            </DialogDescription>
+          </DialogHeader>
 
-                    <div className="flex justify-between items-center pt-2">
-                        <label className="flex items-center gap-2 text-gray-300 text-sm">
-                            <input
-                                type="checkbox"
-                                className="border-gray-600 rounded focus-visible:ring-2 focus-visible:ring-ring w-4 h-4 text-primary"
-                                {...register("RememberMe")}
-                            />
-                            Remember me
-                        </label>
-                        <a href="#" className="text-blue-500 text-sm hover:underline">
-                            Forgot password?
-                        </a>
-                    </div>
-                </form>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            noValidate
+            className="space-y-4"
+          >
+            <div className="space-y-2">
+              <Label htmlFor="login-email">Email</Label>
 
-                <SocialAuthButtons />
+              <div className="relative">
+                <FiUser
+                  className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  id="login-email"
+                  type="text"
+                  placeholder="you@example.com"
+                  autoComplete="email"
+                  aria-invalid={!!errors.Email}
+                  className="h-11 rounded-xl pl-10"
+                  {...register("Email", {
+                    required: "Enter your email.",
+                  })}
+                />
+              </div>
 
-                <p className="text-gray-300 text-sm text-center">
-                    Don&apos;t have an account?{" "}
-                    <button
-                        type="button"
-                        onClick={onSwitchToRegister}
-                        className="text-blue-500 hover:underline"
-                    >
-                        Sign up
-                    </button>
+              {errors.Email && (
+                <p className="text-sm text-destructive">
+                  {errors.Email.message}
                 </p>
-            </DialogContent>
-        </Dialog>
-    )
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="login-password">Password</Label>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-primary transition-colors hover:text-primary/80"
+                  onClick={() => {
+                    // Connect this to your forgot-password flow.
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
+
+              <div className="relative">
+                <FiLock
+                  className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+
+                <Input
+                  id="login-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  aria-invalid={!!errors.Password}
+                  className="h-11 rounded-xl pl-10 pr-11"
+                  {...register("Password", {
+                    required: "Enter your password.",
+                  })}
+                />
+
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-r-xl text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <FiEyeOff className="size-4" />
+                  ) : (
+                    <FiEye className="size-4" />
+                  )}
+                </button>
+              </div>
+
+              {errors.Password && (
+                <p className="text-sm text-destructive">
+                  {errors.Password.message}
+                </p>
+              )}
+            </div>
+
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-muted-foreground">
+              <input
+                type="checkbox"
+                className="size-4 rounded border-input accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                {...register("RememberMe")}
+              />
+              Keep me signed in
+            </label>
+
+            <Button
+              type="submit"
+              size="lg"
+              className="h-11 w-full rounded-xl"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Signing in…" : "Sign in to Velora"}
+            </Button>
+          </form>
+
+          <SocialAuthButtons />
+
+          <p className="mt-5 text-center text-sm text-muted-foreground">
+            New to Velora?{" "}
+            <button
+              type="button"
+              onClick={onSwitchToRegister}
+              className="font-semibold text-primary transition-colors hover:text-primary/80"
+            >
+              Create an account
+            </button>
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }

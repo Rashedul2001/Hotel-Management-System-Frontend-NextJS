@@ -5,6 +5,9 @@ import "../../styles/admin-global.css"
 import { AdminShell } from "@/components/admin-page/admin-shell";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/providers/AuthContext";
+import { AuthModalProvider } from "@/providers/auth-modal-context";
+import { RoleGuard } from "@/providers/role-guard";
+import { ROLES } from "@/lib/roles";
 import { Toaster } from "sonner";
 
 // Primary UI Font
@@ -41,11 +44,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-
-
-          <AdminShell>{children}</AdminShell>
-
-
+            <AuthModalProvider>
+              <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN]}>
+                <AdminShell>{children}</AdminShell>
+              </RoleGuard>
+            </AuthModalProvider>
           </AuthProvider>
         </ThemeProvider>
         <Toaster

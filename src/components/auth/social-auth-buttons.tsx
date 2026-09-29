@@ -1,73 +1,78 @@
-//don't know 
+"use client";
 
-"use client"
+import { redirect } from "next/navigation";
+import { FaFacebook, FaGithub, FaLinkedin } from "react-icons/fa6";
+import { FcGoogle } from "react-icons/fc";
 
-import { FaGithub, FaLinkedin, FaFacebook } from "react-icons/fa6"
-import { FcGoogle } from "react-icons/fc"
+type SocialProvider = "google" | "linkedin" | "github" | "facebook";
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5052";
 
-export type SocialProvider = "google" | "linkedin" | "github" | "facebook"
+export function SocialAuthButtons() {
+  const handleClick = (provider: SocialProvider) => () => {
+    // IMPORTANT:
+    // OAuth must start by navigating the browser to the backend.
+    //
+    // Do NOT use apiFetch() here.
+    //
+    // The backend must be allowed to redirect the browser to
+    // Google/Facebook/LinkedIn/GitHub and then receive the
+    // provider callback.
+    // OAuth must start by navigating the browser to the backend
+    // (not fetch/apiFetch), so it can redirect to the provider.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign(`${apiUrl}/api/auth/external/${provider}`);
+  };
 
-interface SocialAuthButtonsProps {
-    /**
-     * Called when a provider button is clicked. Wire this up to your real
-     * OAuth flow later (e.g. NextAuth's `signIn(provider)`), which is why it's
-     * a plain callback rather than a link straight to an ASP.NET route.
-     */
-    onProviderClick?: (provider: SocialProvider) => void
-}
+  return (
+    <div className="mt-6">
+      <div className="my-5 flex items-center gap-3">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          or continue with
+        </span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
 
-export function SocialAuthButtons({ onProviderClick }: SocialAuthButtonsProps) {
-    const handleClick = (provider: SocialProvider) => () => {
-        if (onProviderClick) {
-            onProviderClick(provider)
-        } else {
-            console.log(`TODO: wire up ${provider} OAuth`)
-        }
-    }
+      <button
+        type="button"
+        onClick={handleClick("google")}
+        className="flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-background px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <FcGoogle className="size-5" aria-hidden="true" />
+        Continue with Google
+      </button>
 
-    return (
-        <>
-            <div className="flex items-center gap-4 my-6">
-                <hr className="border-gray-700 w-full" />
-                <span className="text-gray-400 text-sm">or</span>
-                <hr className="border-gray-700 w-full" />
-            </div>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={handleClick("linkedin")}
+          className="flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-background px-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3"
+          aria-label="Continue with LinkedIn"
+        >
+          <FaLinkedin className="size-4 text-[#0A66C2]" aria-hidden="true" />
+          <span className="hidden sm:inline">LinkedIn</span>
+        </button>
 
-            <button
-                type="button"
-                onClick={handleClick("google")}
-                className="flex justify-center items-center gap-2 bg-white hover:bg-gray-100 mb-4 px-4 py-2 rounded w-full font-bold text-black transition-colors"
-            >
-                <FcGoogle className="w-5 h-5" aria-hidden="true" />
-                Continue with Google
-            </button>
+        <button
+          type="button"
+          onClick={handleClick("github")}
+          className="flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-background px-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3"
+          aria-label="Continue with GitHub"
+        >
+          <FaGithub className="size-4" aria-hidden="true" />
+          <span className="hidden sm:inline">GitHub</span>
+        </button>
 
-            <div className="flex justify-around gap-2 mb-2">
-                <button
-                    type="button"
-                    onClick={handleClick("linkedin")}
-                    className="flex justify-center items-center gap-2 bg-[#0A66C2] hover:bg-[#0A66C2]/90 px-4 py-2 rounded w-full text-white transition-colors"
-                >
-                    <FaLinkedin className="w-5 h-5" aria-hidden="true" />
-                    LinkedIn
-                </button>
-                <button
-                    type="button"
-                    onClick={handleClick("github")}
-                    className="flex justify-center items-center gap-2 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded w-full text-white transition-colors"
-                >
-                    <FaGithub className="w-5 h-5" aria-hidden="true" />
-                    GitHub
-                </button>
-                <button
-                    type="button"
-                    onClick={handleClick("facebook")}
-                    className="flex justify-center items-center gap-2 bg-[#1877F2] hover:bg-[#1877F2]/90 px-4 py-2 rounded w-full text-white transition-colors"
-                >
-                    <FaFacebook className="w-5 h-5" aria-hidden="true" />
-                    Facebook
-                </button>
-            </div>
-        </>
-    )
+        <button
+          type="button"
+          onClick={handleClick("facebook")}
+          className="flex h-10 items-center justify-center gap-2 rounded-xl border border-border bg-background px-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:px-3"
+          aria-label="Continue with Facebook"
+        >
+          <FaFacebook className="size-4 text-[#1877F2]" aria-hidden="true" />
+          <span className="hidden sm:inline">Facebook</span>
+        </button>
+      </div>
+    </div>
+  );
 }

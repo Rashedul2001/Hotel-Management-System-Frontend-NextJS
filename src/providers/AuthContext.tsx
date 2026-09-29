@@ -1,12 +1,13 @@
 "use client";
 
-import { AuthUser } from "@/types/auth-user";
+import type { AuthUser } from "@/types/auth-user";
 
 import {
     createContext,
     useCallback,
     useContext,
     useEffect,
+    useRef,
     useState,
 } from "react";
 
@@ -35,6 +36,7 @@ export function AuthProvider({
 }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const hasCheckedInitialSession = useRef(false);
 
     const refreshUser = useCallback(async () => {
         try {
@@ -45,14 +47,19 @@ export function AuthProvider({
                     credentials: "include",
                 }
             );
+            // console.log("Session check response:", response);
+            // console.log("Session check response data:", await response.json());
 
-            if (!response.ok) {
+            if (response.status === 401) {
                 setUser(null);
                 return;
             }
 
-            const data: AuthUser = await response.json();
+            if (!response.ok) {
+                throw new Error(`Session check failed: ${response.status}`);
+            }
 
+            const data: AuthUser = await response.json();
             setUser(data);
         } catch (error) {
             console.error("Failed to get current user:", error);
@@ -64,7 +71,11 @@ export function AuthProvider({
     }, []);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (hasCheckedInitialSession.current) {
+            return;
+        }
+
+        hasCheckedInitialSession.current = true;
         refreshUser();
     }, [refreshUser]);
 

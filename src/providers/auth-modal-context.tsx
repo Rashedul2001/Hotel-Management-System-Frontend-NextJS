@@ -2,10 +2,10 @@
 
 "use client"
 
-import * as React from "react"
-
 import { RegisterModal } from "../components/auth/register-modal"
 import { LoginModal } from "../components/auth/login-modal"
+import { createContext, Suspense, useContext, useMemo, useState } from "react"
+import { AuthErrorHandler } from "@/components/auth/auth-error-handler"
 
 type AuthModalView = "login" | "register" | null
 
@@ -16,7 +16,7 @@ interface AuthModalContextValue {
     close: () => void
 }
 
-const AuthModalContext = React.createContext<AuthModalContextValue | null>(
+const AuthModalContext = createContext<AuthModalContextValue | null>(
     null
 )
 
@@ -27,9 +27,9 @@ const AuthModalContext = React.createContext<AuthModalContextValue | null>(
  * without any DOM id lookups.
  */
 export function AuthModalProvider({ children }: { children: React.ReactNode }) {
-    const [view, setView] = React.useState<AuthModalView>(null)
+    const [view, setView] = useState<AuthModalView>(null)
 
-    const value = React.useMemo<AuthModalContextValue>(
+    const value = useMemo<AuthModalContextValue>(
         () => ({
             view,
             openLogin: () => setView("login"),
@@ -42,6 +42,10 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
     return (
         <AuthModalContext.Provider value={value}>
             {children}
+            <Suspense fallback={null}>
+            <AuthErrorHandler/>
+            </Suspense>
+
             <LoginModal
                 open={view === "login"}
                 onOpenChange={(open) => setView(open ? "login" : null)}
@@ -57,7 +61,7 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAuthModal() {
-    const ctx = React.useContext(AuthModalContext)
+    const ctx = useContext(AuthModalContext)
     if (!ctx) {
         throw new Error("useAuthModal must be used within an AuthModalProvider")
     }

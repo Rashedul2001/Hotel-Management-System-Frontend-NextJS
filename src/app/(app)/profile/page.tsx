@@ -1,4 +1,5 @@
 import ProfilePage from "@/components/profile/ProfilePage";
+import { ProtectedContent } from "@/providers/protected-content";
 import { GuestProfile } from "@/types/profile";
 
 const demoProfile: GuestProfile = {
@@ -51,31 +52,30 @@ const demoProfile: GuestProfile = {
 
 export default function ProfileRoute() {
     return (
-        <ProfilePage
-            profile={demoProfile}
-            /*
-             * Connect these callbacks to your ASP.NET Core API.
-             * No API URLs are invented here because the supplied Profile.cshtml
-             * contains MVC form actions rather than the new API contract.
-             */
-            // onProfileSave={async (profile) => {
-            //     console.log("TODO: PUT/PATCH profile", profile);
-            // }}
-            // onPasswordChange={async (currentPassword, newPassword) => {
-            //     console.log("TODO: POST change-password", { currentPassword, newPassword });
-            // }}
-            // onPasswordReset={async () => {
-            //     console.log("TODO: POST reset-password");
-            // }}
-            // onTwoFactorToggle={async (enabled) => {
-            //     console.log("TODO: POST toggle-two-factor", enabled);
-            // }}
-            // onPhotoChange={async (file) => {
-            //     console.log("TODO: POST profile-photo", file);
-            // }}
-            // onNotificationPreferencesChange={async (preferences) => {
-            //     console.log("TODO: PUT notification-preferences", preferences);
-            // }}
-        />
+        <ProtectedContent>
+            <ProfilePage
+                profile={demoProfile}
+                /*
+                 * Connect these callbacks to your ASP.NET Core API.
+                 * No API URLs are invented here because the supplied Profile.cshtml
+                 * contains MVC form actions rather than the new API contract.
+                 */
+                // onProfileSave={async (profile) => {
+                //     console.log("TODO: PUT/PATCH profile", profile);
+                // }}
+                // onPasswordChange={async (currentPassword, newPassword) => {
+                //     console.log("TODO: POST change-password", { currentPassword, newPassword });
+                // }}
+                // onPasswordReset={async () => {
+                //     console.log("TODO: POST reset-password");
+                // }}
+                // onTwoFactorToggle={async (enabled) => {
+                //     console.log("TODO: POST toggle-two-factor", enabled);
+                // }}
+                // onNotificationPreferencesChange={async (preferences) => {
+                //     console.log("TODO: PUT notification-preferences", preferences);
+                // }}
+            />
+        </ProtectedContent>
     );
 }

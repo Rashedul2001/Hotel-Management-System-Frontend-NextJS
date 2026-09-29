@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import RoomDetails from "@/components/hotel-room/room-details";
+import { ProtectedContent } from "@/providers/protected-content";
 
 const ROOMS = [
   {
@@ -245,19 +246,23 @@ export default async function RoomDetailsPage({
   const { roomId } = await params;
   const query = await searchParams;
 
-  // const room = ROOMS.find((item) => item.id === roomId);
-  const room = ROOMS.at(0);
+  let room = ROOMS.find((item) => item.id === roomId);
 
   if (!room) {
-    notFound();
+    // for now we'll return a template page 
+    room = ROOMS[0]; // default to the first room if not found
+
+    // notFound();
   }
 
   return (
-    <RoomDetails
-      room={room}
-      initialCheckIn={query.checkIn ?? ""}
-      initialCheckOut={query.checkOut ?? ""}
-      initialGuests={Number(query.guests ?? 1)}
-    />
+    <ProtectedContent>
+      <RoomDetails
+        room={room}
+        initialCheckIn={query.checkIn ?? ""}
+        initialCheckOut={query.checkOut ?? ""}
+        initialGuests={Number(query.guests ?? 1)}
+      />
+    </ProtectedContent>
   );
 }
