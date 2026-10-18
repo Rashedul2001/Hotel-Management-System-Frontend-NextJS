@@ -17,6 +17,11 @@ export default function RootLayout({
 }): JSX.Element {
     return (
         <html lang="en" suppressHydrationWarning className="h-full antialiased">
+            <head>
+                <title>Velora-Hotels & Suites</title>
+                <link rel="icon" href="/favicon.png" />
+            </head>
+
             <body >
                 <ThemeProvider
                     attribute="class"

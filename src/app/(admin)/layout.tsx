@@ -35,7 +35,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }): JSX.Element {
   return (
-    <html lang="en" suppressHydrationWarning = {true} className={`${inter.variable} ${robotoMono.variable} antialiased `}>
+    <html lang="en" suppressHydrationWarning={true} className={`${inter.variable} ${robotoMono.variable} antialiased `}>
+      <head>
+        <title>Velora-Admin</title>
+        <link rel="icon" href="/favicon.png" />
+      </head>
       <body>
         <ThemeProvider
           attribute="class"
@@ -44,6 +48,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
+
             <AuthModalProvider>
               <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN]}>
                 <AdminShell>{children}</AdminShell>

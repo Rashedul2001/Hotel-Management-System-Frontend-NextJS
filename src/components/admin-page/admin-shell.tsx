@@ -19,7 +19,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </Link>
 
         <Button
-        className={cn(isSidebarOpen && "hidden")}
+          className={cn(isSidebarOpen && "hidden")}
           type="button"
           variant="outline"
           size="icon"
@@ -27,7 +27,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           aria-expanded={isSidebarOpen}
           onClick={() => setIsSidebarOpen((open) => !open)}
         >
-           <Menu />
+          <Menu />
         </Button>
       </header>
 
