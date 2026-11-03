@@ -16,8 +16,8 @@ export async function apiFetch(
         headers: isFormData
             ? options.headers
             : {
-                  "Content-Type": "application/json",
-                  ...options.headers,
-              },
+                "Content-Type": "application/json",
+                ...options.headers,
+            },
     });
 }
