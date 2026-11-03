@@ -137,7 +137,23 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
         setParameters({ [key]: value });
     }, 500, { maxWait: 3000 });
 
-    const resetQuery = () => setParameters({});
+    const resetQuery = () => {
+        debouncedSearch.cancel();
+        setParameters({
+            pageNumber: null,
+            pageSize: null,
+            checkInDate: null,
+            checkOutDate: null,
+            searchTerm: null,
+            minPrice: null,
+            maxPrice: null,
+            minCapacity: null,
+            category: null,
+            amenityIds: null,
+            sortBy: null,
+            isAscending: null,
+        });
+    };
 
     const updateAmenity = (amenityId: number) => {
         const nextAmenityIds = parameters.amenityIds.includes(amenityId)
@@ -625,55 +641,55 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                     </div>
 
                                     {totalPages > 1 && (
-                                    <Pagination className="mt-8">
-                                        <PaginationContent>
-                                            <PaginationItem>
-                                                <PaginationPrevious
-                                                    href={`?pageNumber=${Math.max(1, currentPage - 1)}`}
-                                                    aria-disabled={currentPage === 1}
-                                                    className={currentPage === 1 ? "pointer-events-none opacity-50" : undefined}
-                                                    onClick={(event) => {
-                                                        event.preventDefault();
-                                                        updatePage(currentPage - 1);
-                                                    }}
-                                                />
-                                            </PaginationItem>
+                                        <Pagination className="mt-8">
+                                            <PaginationContent>
+                                                <PaginationItem>
+                                                    <PaginationPrevious
+                                                        href={`?pageNumber=${Math.max(1, currentPage - 1)}`}
+                                                        aria-disabled={currentPage === 1}
+                                                        className={currentPage === 1 ? "pointer-events-none opacity-50" : undefined}
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            updatePage(currentPage - 1);
+                                                        }}
+                                                    />
+                                                </PaginationItem>
 
-                                            {visiblePageNumbers.map((pageNumber, index) => {
-                                                const previousPage = visiblePageNumbers[index - 1];
+                                                {visiblePageNumbers.map((pageNumber, index) => {
+                                                    const previousPage = visiblePageNumbers[index - 1];
 
-                                                return (
-                                                    <PaginationItem key={pageNumber}>
-                                                        {previousPage && pageNumber - previousPage > 1 && (
-                                                            <PaginationEllipsis />
-                                                        )}
-                                                        <PaginationLink
-                                                            href={`?pageNumber=${pageNumber}`}
-                                                            isActive={pageNumber === currentPage}
-                                                            onClick={(event) => {
-                                                                event.preventDefault();
-                                                                updatePage(pageNumber);
-                                                            }}
-                                                        >
-                                                            {pageNumber}
-                                                        </PaginationLink>
-                                                    </PaginationItem>
-                                                );
-                                            })}
+                                                    return (
+                                                        <PaginationItem key={pageNumber}>
+                                                            {previousPage && pageNumber - previousPage > 1 && (
+                                                                <PaginationEllipsis />
+                                                            )}
+                                                            <PaginationLink
+                                                                href={`?pageNumber=${pageNumber}`}
+                                                                isActive={pageNumber === currentPage}
+                                                                onClick={(event) => {
+                                                                    event.preventDefault();
+                                                                    updatePage(pageNumber);
+                                                                }}
+                                                            >
+                                                                {pageNumber}
+                                                            </PaginationLink>
+                                                        </PaginationItem>
+                                                    );
+                                                })}
 
-                                            <PaginationItem>
-                                                <PaginationNext
-                                                    href={`?pageNumber=${Math.min(totalPages, currentPage + 1)}`}
-                                                    aria-disabled={currentPage === totalPages}
-                                                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : undefined}
-                                                    onClick={(event) => {
-                                                        event.preventDefault();
-                                                        updatePage(currentPage + 1);
-                                                    }}
-                                                />
-                                            </PaginationItem>
-                                        </PaginationContent>
-                                    </Pagination>
+                                                <PaginationItem>
+                                                    <PaginationNext
+                                                        href={`?pageNumber=${Math.min(totalPages, currentPage + 1)}`}
+                                                        aria-disabled={currentPage === totalPages}
+                                                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : undefined}
+                                                        onClick={(event) => {
+                                                            event.preventDefault();
+                                                            updatePage(currentPage + 1);
+                                                        }}
+                                                    />
+                                                </PaginationItem>
+                                            </PaginationContent>
+                                        </Pagination>
                                     )}
                                 </>
                             ) : (
