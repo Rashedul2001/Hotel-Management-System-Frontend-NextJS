@@ -1,19 +1,8 @@
 "use client"; // Error boundaries must be Client Components
 
-import { useEffect } from "react";
 import Link from "next/link";
 
-export default function GlobalError({
-    error,
-    reset,
-}: {
-    error: Error & { digest?: string };
-    reset: () => void;
-}) {
-    useEffect(() => {
-        //TODO: Log the error to an error reporting service in production
-        console.error("Application error:", error);
-    }, [error]);
+export default function GlobalError() {
 
     return (
         <div className="flex flex-col justify-center items-center bg-white dark:bg-zinc-950 px-4 min-h-screen text-zinc-900 dark:text-zinc-50 transition-colors duration-200">
@@ -48,7 +37,7 @@ export default function GlobalError({
 
                 <div className="flex sm:flex-row flex-col justify-center items-center gap-3 pt-4">
                     <button
-                        onClick={() => reset()}
+                        onClick={() => window.location.reload()}
                         className="bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:hover:bg-zinc-200 px-5 py-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 dark:focus:ring-offset-zinc-950 w-full sm:w-auto font-medium text-white dark:text-zinc-900 transition-colors"
                     >
                         Try Again

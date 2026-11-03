@@ -88,6 +88,8 @@ const items: {
         },
     ];
 
+const pageSizeOptions = [10, 25, 50, 100];
+
 const res = await apiFetch("/api/rooms/amenities", {
     method: "GET",
     headers: {
@@ -101,6 +103,7 @@ import { parseAsArrayOf, parseAsBoolean, parseAsFloat, parseAsInteger, parseAsSt
 import { useDebouncedCallback } from 'use-debounce';
 import { apiFetch } from "@/lib/api";
 import RoomCard from "../ui/RoomCard";
+import { Field } from "../ui/field";
 
 
 export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; totalRooms: number }) {
@@ -145,6 +148,35 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
     };
 
     const totalPages = Math.ceil(totalRooms / parameters.pageSize);
+    const currentPage = Math.min(parameters.pageNumber, Math.max(totalPages, 1));
+    const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1);
+    const visiblePageNumbers = pageNumbers.length <= 5
+        ? pageNumbers
+        : [
+            1,
+            ...pageNumbers.slice(
+                Math.max(1, currentPage - 2),
+                Math.min(totalPages - 1, currentPage + 1),
+            ),
+            totalPages,
+        ].filter((page, index, pages) => pages.indexOf(page) === index);
+
+    const updatePage = (pageNumber: number) => {
+        setParameters({ pageNumber });
+    };
+
+    const updatePageSize = (value: string | null) => {
+        const pageSize = Number(value);
+
+        if (!Number.isInteger(pageSize) || pageSize <= 0) {
+            return;
+        }
+
+        setParameters({
+            pageNumber: 1,
+            pageSize,
+        });
+    };
 
 
     return (
@@ -481,24 +513,33 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                 </div>
 
                                 <div className="flex items-center gap-2">
-
-                                    {/* Share
-                                    <button
-                                        type="button"
-                                        onClick={shareSearch}
-                                        className="relative flex items-center gap-2 px-3 border border-border hover:border-primary rounded-lg h-10 font-medium hover:text-primary text-sm transition"
-                                    >
-                                        <FiShare2 className="w-4 h-4" />
-                                        <span className="hidden sm:inline">
-                                            Share
-                                        </span>
-
-                                        {shareMessage && (
-                                            <span className="top-12 right-0 z-10 absolute bg-foreground shadow-lg px-3 py-2 rounded-lg text-background text-xs whitespace-nowrap">
-                                                {shareMessage}
-                                            </span>
-                                        )}
-                                    </button> */}
+                                    {/* Rooms per page */}
+                                    <Field orientation="horizontal" className="w-fit">
+                                        <Select
+                                            value={String(parameters.pageSize)}
+                                            onValueChange={updatePageSize}
+                                        >
+                                            <SelectTrigger
+                                                className="bg-background border border-border focus:border-primary rounded-lg outline-none w-20 h-10! font-medium text-sm appearance-none"
+                                                id="select-rows-per-page"
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent align="start">
+                                                <SelectGroup>
+                                                    <SelectLabel>Rooms per Page</SelectLabel>
+                                                    {pageSizeOptions.map((pageSize) => (
+                                                        <SelectItem
+                                                            key={pageSize}
+                                                            value={String(pageSize)}
+                                                        >
+                                                            {pageSize}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                    </Field>
 
                                     {/* Sort */}
                                     <Select items={items} value={parameters.sortBy || null} onValueChange={value => setParameters({ sortBy: value })}>
@@ -583,57 +624,57 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                         ))}
                                     </div>
 
-                                    {/* TODO: set Pagination */}
-                                    {/* 
                                     {totalPages > 1 && (
-                                        <Pagination className="mt-8">
-                                            <PaginationContent className="flex-wrap">
-                                                <PaginationItem>
-                                                    <PaginationPrevious
-                                                        href={getPageHref(Math.max(1, currentPage - 1))}
-                                                        aria-disabled={currentPage === 1}
-                                                        className={currentPage === 1 ? "pointer-events-none opacity-50" : undefined}
-                                                        onClick={(event) => {
-                                                            event.preventDefault();
-                                                            updatePage(currentPage - 1);
-                                                        }}
-                                                    />
-                                                </PaginationItem>
+                                    <Pagination className="mt-8">
+                                        <PaginationContent>
+                                            <PaginationItem>
+                                                <PaginationPrevious
+                                                    href={`?pageNumber=${Math.max(1, currentPage - 1)}`}
+                                                    aria-disabled={currentPage === 1}
+                                                    className={currentPage === 1 ? "pointer-events-none opacity-50" : undefined}
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        updatePage(currentPage - 1);
+                                                    }}
+                                                />
+                                            </PaginationItem>
 
-                                                {paginationItems.map((item, index) => (
-                                                    <PaginationItem key={`${item}-${index}`}>
-                                                        {item === "ellipsis" ? (
+                                            {visiblePageNumbers.map((pageNumber, index) => {
+                                                const previousPage = visiblePageNumbers[index - 1];
+
+                                                return (
+                                                    <PaginationItem key={pageNumber}>
+                                                        {previousPage && pageNumber - previousPage > 1 && (
                                                             <PaginationEllipsis />
-                                                        ) : (
-                                                            <PaginationLink
-                                                                href={getPageHref(item)}
-                                                                isActive={item === currentPage}
-                                                                aria-label={`Go to page ${item}`}
-                                                                onClick={(event) => {
-                                                                    event.preventDefault();
-                                                                    updatePage(item);
-                                                                }}
-                                                            >
-                                                                {item}
-                                                            </PaginationLink>
                                                         )}
+                                                        <PaginationLink
+                                                            href={`?pageNumber=${pageNumber}`}
+                                                            isActive={pageNumber === currentPage}
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                updatePage(pageNumber);
+                                                            }}
+                                                        >
+                                                            {pageNumber}
+                                                        </PaginationLink>
                                                     </PaginationItem>
-                                                ))}
+                                                );
+                                            })}
 
-                                                <PaginationItem>
-                                                    <PaginationNext
-                                                        href={getPageHref(Math.min(totalPages, currentPage + 1))}
-                                                        aria-disabled={currentPage === totalPages}
-                                                        className={currentPage === totalPages ? "pointer-events-none opacity-50" : undefined}
-                                                        onClick={(event) => {
-                                                            event.preventDefault();
-                                                            updatePage(currentPage + 1);
-                                                        }}
-                                                    />
-                                                </PaginationItem>
-                                            </PaginationContent>
-                                        </Pagination>
-                                    )} */}
+                                            <PaginationItem>
+                                                <PaginationNext
+                                                    href={`?pageNumber=${Math.min(totalPages, currentPage + 1)}`}
+                                                    aria-disabled={currentPage === totalPages}
+                                                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : undefined}
+                                                    onClick={(event) => {
+                                                        event.preventDefault();
+                                                        updatePage(currentPage + 1);
+                                                    }}
+                                                />
+                                            </PaginationItem>
+                                        </PaginationContent>
+                                    </Pagination>
+                                    )}
                                 </>
                             ) : (
                                 <div className="px-6 py-20 border border-border border-dashed rounded-2xl text-center">
