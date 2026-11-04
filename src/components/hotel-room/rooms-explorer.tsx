@@ -1,6 +1,7 @@
 "use client";
 
 import {
+    useEffect,
     useState,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -128,17 +129,48 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
         isAscending: parseAsBoolean.withDefault(true),
     }, { shallow: false });
 
+    const [searchInput, setSearchInput] = useState(parameters.searchTerm);
+    const [minPriceInput, setMinPriceInput] = useState(String(parameters.minPrice));
+    const [maxPriceInput, setMaxPriceInput] = useState(String(parameters.maxPrice));
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setSearchInput(parameters.searchTerm);
+        setMinPriceInput(String(parameters.minPrice));
+        setMaxPriceInput(String(parameters.maxPrice));
+    }, [
+        parameters.maxPrice,
+        parameters.minPrice,
+        parameters.searchTerm,
+    ]);
 
     const handleToggle = () => {
         const nextValue = !parameters.isAscending;
         setParameters({ isAscending: nextValue });
     };
-    const debouncedSearch = useDebouncedCallback((key: string, value: string | number | null | number[] | boolean) => {
-        setParameters({ [key]: value });
-    }, 500, { maxWait: 3000 });
+    const debouncedSearch = useDebouncedCallback((value: string) => {
+        setParameters({ searchTerm: value || null, pageNumber: 1 });
+    }, 500, { maxWait: 2000 });
+    const debouncedMinPrice = useDebouncedCallback((value: string) => {
+        setParameters({
+            minPrice: value === "" ? null : Number(value),
+            pageNumber: 1,
+        });
+    }, 500, { maxWait: 2000 });
+    const debouncedMaxPrice = useDebouncedCallback((value: string) => {
+        setParameters({
+            maxPrice: value === "" ? null : Number(value),
+            pageNumber: 1,
+        });
+    }, 500, { maxWait: 2000 });
 
     const resetQuery = () => {
         debouncedSearch.cancel();
+        debouncedMinPrice.cancel();
+        debouncedMaxPrice.cancel();
+        setSearchInput("");
+        setMinPriceInput("0");
+        setMaxPriceInput("500");
         setParameters({
             pageNumber: null,
             pageSize: null,
@@ -238,12 +270,12 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
 
                                 <input
                                     type="search"
-                                    defaultValue={parameters.searchTerm ?? ""}
-                                    onChange={(event) =>
-                                        debouncedSearch(
-                                            "searchTerm", event.target.value,
-                                        )
-                                    }
+                                    value={searchInput}
+                                    onChange={(event) => {
+                                        const value = event.target.value;
+                                        setSearchInput(value);
+                                        debouncedSearch(value);
+                                    }}
                                     placeholder="Search rooms..."
                                     className="bg-muted/30 pr-4 pl-11 border border-border focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/10 w-full h-12 text-sm transition [&::-webkit-search-cancel-button]:cursor-pointer"
                                 />
@@ -255,8 +287,8 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
 
                                 <input
                                     type="date"
-                                    defaultValue={parameters.checkInDate ?? ""}
-                                    onChange={(event) => debouncedSearch("checkInDate", event.target.value)}
+                                    value={parameters.checkInDate}
+                                    onChange={(event) => setParameters({ checkInDate: event.target.value })}
 
                                     className="bg-muted/30 pr-3 pl-11 border border-border focus:border-primary rounded-xl outline-none w-full h-12 text-sm transition"
                                     aria-label="Check in"
@@ -269,8 +301,8 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
 
                                 <input
                                     type="date"
-                                    defaultValue={parameters.checkOutDate ?? ""}
-                                    onChange={(event) => debouncedSearch("checkOutDate", event.target.value)}
+                                    value={parameters.checkOutDate}
+                                    onChange={(event) => setParameters({ checkOutDate: event.target.value })}
                                     className="bg-muted/30 pr-3 pl-11 border border-border focus:border-primary rounded-xl outline-none w-full h-12 text-sm transition"
                                     aria-label="Check out"
                                 />
@@ -281,8 +313,8 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                 <FiUsers className="top-1/2 left-4 absolute w-4 h-4 text-muted-foreground -translate-y-1/2" />
 
                                 <select
-                                    defaultValue={parameters.minCapacity ?? ""}
-                                    onChange={(event) => debouncedSearch("minCapacity", event.target.value)}
+                                    value={String(parameters.minCapacity)}
+                                    onChange={(event) => setParameters({ minCapacity: parseFloat(event.target.value) })}
                                     className="bg-muted/30 pr-8 pl-11 border border-border focus:border-primary rounded-xl outline-none w-full h-12 text-sm transition appearance-none"
                                     aria-label="Number of guests"
                                 >
@@ -298,7 +330,11 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
 
                             <button
                                 type="button"
-                                onClick={debouncedSearch.flush}
+                                onClick={() => {
+                                    debouncedSearch.flush();
+                                    debouncedMinPrice.flush();
+                                    debouncedMaxPrice.flush();
+                                }}
                                 className="bg-primary hover:bg-primary/90 px-6 rounded-xl h-12 font-semibold text-primary-foreground text-sm transition"
                             >
                                 Search
@@ -364,7 +400,7 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                                         key={roomCategory}
                                                         type="button"
                                                         onClick={() =>
-                                                            debouncedSearch("category", roomCategory)
+                                                            setParameters({ category: roomCategory })
                                                         }
                                                         className={`
                               flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm transition
@@ -401,10 +437,12 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                         <input
                                             type="number"
                                             min={0}
-                                            defaultValue={parameters.minPrice ?? 1}
-                                            onChange={(event) =>
-                                                debouncedSearch("minPrice", event.target.value)
-                                            }
+                                            value={minPriceInput}
+                                            onChange={(event) => {
+                                                const value = event.target.value;
+                                                setMinPriceInput(value);
+                                                debouncedMinPrice(value);
+                                            }}
                                             placeholder="Min"
                                             className="bg-background px-3 border border-border focus:border-primary rounded-lg outline-none w-full h-10 text-sm"
                                         />
@@ -412,10 +450,13 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                         <input
                                             type="number"
                                             min={0}
-                                            defaultValue={parameters.maxPrice ?? 500}
-                                            onChange={(event) =>
-                                                debouncedSearch("maxPrice", event.target.value)
-                                            }
+                                            value={maxPriceInput}
+                                            onChange={(event) => {
+                                                const value = event.target.value;
+                                                setMaxPriceInput(value);
+                                                debouncedMaxPrice(value);
+                                            }}
+
                                             placeholder="Max"
                                             className="bg-background px-3 border border-border focus:border-primary rounded-lg outline-none w-full h-10 text-sm"
                                         />
@@ -486,9 +527,12 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
 
                                 {/* Clear */}
                                 {(parameters.searchTerm ||
+                                    parameters.checkInDate ||
+                                    parameters.checkOutDate ||
                                     parameters.category !== "All" ||
                                     parameters.minPrice > 0 ||
                                     parameters.maxPrice < 500 ||
+                                    parameters.minCapacity !== 1 ||
                                     parameters.amenityIds.length > 0) && (
                                         <Button
                                             variant={"outline"}
@@ -788,7 +832,7 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                                 key={roomCategory}
                                                 type="button"
                                                 onClick={() =>
-                                                    debouncedSearch("category", roomCategory)
+                                                    setParameters({ category: roomCategory })
                                                 }
                                                 className={`
                           rounded-xl border px-3 py-3 text-sm font-medium
@@ -819,13 +863,12 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                 <input
                                     type="number"
                                     min={0}
-                                    defaultValue={parameters.minPrice || "0"}
-                                    onChange={(event) =>
-                                        debouncedSearch("minPrice", event.target.value)
-                                    }
-                                    onBlur={() =>
-                                        debouncedSearch("minPrice", parameters.minPrice || "0")
-                                    }
+                                    value={minPriceInput}
+                                    onChange={(event) => {
+                                        const value = event.target.value;
+                                        setMinPriceInput(value);
+                                        debouncedMinPrice(value);
+                                    }}
                                     placeholder="Minimum"
                                     className="px-3 border border-border focus:border-primary rounded-xl outline-none h-11 text-sm"
                                 />
@@ -833,13 +876,12 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                 <input
                                     type="number"
                                     min={0}
-                                    defaultValue={parameters.maxPrice || "500"}
-                                    onChange={(event) =>
-                                        debouncedSearch("maxPrice", event.target.value)
-                                    }
-                                    onBlur={() =>
-                                        debouncedSearch("maxPrice", parameters.maxPrice || "500")
-                                    }
+                                    value={maxPriceInput}
+                                    onChange={(event) => {
+                                        const value = event.target.value;
+                                        setMaxPriceInput(value);
+                                        debouncedMaxPrice(value);
+                                    }}
                                     placeholder="Maximum"
                                     className="px-3 border border-border focus:border-primary rounded-xl outline-none h-11 text-sm"
                                 />

@@ -6,6 +6,14 @@ export interface RoomImage {
   id: number;
   imageUrl: string;
 }
+
+export type RoomStatus =
+  | "Available"
+  | "Occupied"
+  | "Cleaning"
+  | "Maintenance"
+  | "Blocked";
+
 export interface Room {
   id: string;
   roomNumber: string;
@@ -28,4 +36,3 @@ export interface Room {
   images: RoomImage[];
   amenities: RoomAmenity[];
 }
-

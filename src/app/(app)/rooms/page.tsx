@@ -71,7 +71,7 @@ export default async function RoomsPage({
   }
 
   if (fetchError)
-    return <GlobalError error={fetchError} reset={() => window.location.reload()} />;
+    return <GlobalError />;
 
   return <RoomsExplorer rooms={rooms} totalRooms={totalRooms} />;
 }

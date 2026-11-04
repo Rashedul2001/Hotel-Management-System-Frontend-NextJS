@@ -20,8 +20,20 @@ import {
     Users,
     X,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import Image from "next/image";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
+    createRoomAmenity,
+    getRoomAmenities,
+} from "@/lib/admin-rooms-api";
+import type { RoomAmenity } from "@/types/room";
 
 export type RoomFormValues = {
     id?: string;
@@ -31,12 +43,13 @@ export type RoomFormValues = {
     floor: number;
     status: "Available" | "Occupied" | "Cleaning" | "Maintenance" | "Blocked";
     price: number;
-    maxGuests: number;
-    beds: number;
+    capacity: number;
+    bedCount: number;
     bedType: "Single" | "Twin" | "Double" | "Queen" | "King";
     size: number;
     description: string;
     amenities: string[];
+    amenityIds: number[];
     images: File[];
 };
 
@@ -70,16 +83,6 @@ const DEFAULT_CATEGORIES = [
     "Executive",
 ];
 
-const DEFAULT_AMENITIES = [
-    "Free Wi-Fi",
-    "Breakfast Included",
-    "Air Conditioning",
-    "City View",
-    "Mini Bar",
-    "Room Service",
-    "Smart TV",
-    "Work Desk",
-];
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
@@ -91,12 +94,13 @@ const emptyValues: RoomFormValues = {
     floor: 1,
     status: "Available",
     price: 0,
-    maxGuests: 1,
-    beds: 1,
+    capacity: 1,
+    bedCount: 1,
     bedType: "Queen",
     size: 30,
     description: "",
     amenities: [],
+    amenityIds: [],
     images: [],
 };
 
@@ -118,6 +122,8 @@ export default function CreateRoomModal({
     const [submitError, setSubmitError] = useState("");
     const [imageError, setImageError] = useState("");
     const [isDragging, setIsDragging] = useState(false);
+    const [availableAmenities, setAvailableAmenities] = useState<RoomAmenity[]>([]);
+    const [isAddingAmenity, setIsAddingAmenity] = useState(false);
 
     const defaultValues = useMemo<RoomFormValues>(() => {
         if (!initialData) {
@@ -129,20 +135,22 @@ export default function CreateRoomModal({
             roomNumber: initialData.roomNumber ?? "",
             name: initialData.name ?? "",
             category: initialData.category ?? "",
-            floor: initialData.floor ?? 1,
-            status: initialData.status ?? "Available",
+            floor: initialData.floor ?? "",
+            status: initialData.status ?? "",
             price: initialData.price ?? 0,
-            maxGuests: initialData.maxGuests ?? 1,
-            beds: initialData.beds ?? 1,
+            capacity: initialData.capacity ?? "",
+            bedCount: initialData.bedCount ?? "",
             bedType: initialData.bedType ?? "Queen",
-            size: initialData.size ?? 30,
+            size: initialData.size ?? "",
             description: initialData.description ?? "",
             amenities: initialData.amenities ?? [],
+            amenityIds: initialData.amenityIds ?? [],
             images: [],
         };
     }, [initialData]);
 
     const {
+        control,
         register,
         handleSubmit,
         reset,
@@ -155,7 +163,8 @@ export default function CreateRoomModal({
     });
 
     const amenities = watch("amenities");
-    const maxGuests = watch("maxGuests");
+    const amenityIds = watch("amenityIds");
+    const capacity = watch("capacity");
 
     /*
      * Reset the form whenever the modal is opened with new data.
@@ -176,6 +185,20 @@ export default function CreateRoomModal({
 
         setPreviews([]);
     }, [open, defaultValues, initialData?.images]);
+
+    useEffect(() => {
+        if (!open) return;
+
+        getRoomAmenities()
+            .then(setAvailableAmenities)
+            .catch((error) => {
+                setSubmitError(
+                    error instanceof Error
+                        ? error.message
+                        : "Unable to load room amenities.",
+                );
+            });
+    }, [open]);
 
     /*
      * Clean up object URLs when the component unmounts.
@@ -326,7 +349,7 @@ export default function CreateRoomModal({
         );
     };
 
-    const addAmenity = (value?: string) => {
+    const addAmenity = async (value?: string) => {
         const trimmedValue = (value ?? amenityInput).trim();
 
         if (!trimmedValue) return;
@@ -340,15 +363,44 @@ export default function CreateRoomModal({
             return;
         }
 
-        setValue("amenities", [...amenities, trimmedValue], {
-            shouldDirty: true,
-            shouldValidate: true,
-        });
+        setIsAddingAmenity(true);
+        setSubmitError("");
 
-        setAmenityInput("");
+        try {
+            const existingAmenity = availableAmenities.find(
+                (amenity) =>
+                    amenity.name.toLowerCase() === trimmedValue.toLowerCase(),
+            );
+            const amenity =
+                existingAmenity ?? (await createRoomAmenity(trimmedValue));
+
+            if (!existingAmenity) {
+                setAvailableAmenities((current) => [...current, amenity]);
+            }
+
+            setValue("amenities", [...amenities, amenity.name], {
+                shouldDirty: true,
+                shouldValidate: true,
+            });
+            setValue("amenityIds", [...amenityIds, amenity.id], {
+                shouldDirty: true,
+            });
+            setAmenityInput("");
+        } catch (error) {
+            setSubmitError(
+                error instanceof Error
+                    ? error.message
+                    : "Unable to create room amenity.",
+            );
+        } finally {
+            setIsAddingAmenity(false);
+        }
     };
 
     const removeAmenity = (amenityToRemove: string) => {
+        const index = amenities.indexOf(amenityToRemove);
+        const removedAmenityId = index >= 0 ? amenityIds[index] : undefined;
+
         setValue(
             "amenities",
             amenities.filter((amenity) => amenity !== amenityToRemove),
@@ -356,6 +408,13 @@ export default function CreateRoomModal({
                 shouldDirty: true,
             }
         );
+        if (removedAmenityId !== undefined) {
+            setValue(
+                "amenityIds",
+                amenityIds.filter((id) => id !== removedAmenityId),
+                { shouldDirty: true },
+            );
+        }
     };
 
     const handleAmenityKeyDown = (
@@ -363,7 +422,7 @@ export default function CreateRoomModal({
     ) => {
         if (event.key === "Enter") {
             event.preventDefault();
-            addAmenity();
+            void addAmenity();
         }
     };
 
@@ -396,6 +455,7 @@ export default function CreateRoomModal({
     if (!open) return null;
 
     return (
+
         <div
             className="z-100 fixed inset-0 flex justify-center items-center bg-black/50 backdrop-blur-sm p-3 sm:p-6"
             onMouseDown={handleBackdropClick}
@@ -439,196 +499,223 @@ export default function CreateRoomModal({
                     className="flex-1 min-h-0 overflow-y-auto"
                 >
                     <div className="space-y-7 p-4 sm:p-6">
-                        {/* Basic Information */}
-                        <section>
-                            <SectionHeading
-                                title="Basic Information"
-                                description="Define how this room will appear in your hotel inventory."
-                            />
+                        <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
+                            <Field
+                                label="Room Number"
+                                required
+                                error={errors.roomNumber?.message}
+                            >
+                                <input
+                                    {...register("roomNumber", {
+                                        required: "Room number is required.",
+                                    })}
+                                    className="input"
+                                    placeholder="e.g. 204"
+                                />
+                            </Field>
 
-                            <div className="gap-4 grid grid-cols-1 md:grid-cols-2 mt-4">
-                                <Field
-                                    label="Room Number"
-                                    required
-                                    error={errors.roomNumber?.message}
-                                >
-                                    <input
-                                        {...register("roomNumber", {
-                                            required: "Room number is required.",
-                                        })}
-                                        className="input"
-                                        placeholder="e.g. 204"
-                                    />
-                                </Field>
+                            <Field
+                                label="Room Name"
+                                required
+                                error={errors.name?.message}
+                            >
+                                <input
+                                    {...register("name", {
+                                        required: "Room name is required.",
+                                        minLength: {
+                                            value: 2,
+                                            message: "Room name must contain at least 2 characters.",
+                                        },
+                                    })}
+                                    className="input"
+                                    placeholder="e.g. Family Deluxe Room"
+                                />
+                            </Field>
 
-                                <Field
-                                    label="Room Name"
-                                    required
-                                    error={errors.name?.message}
-                                >
+                            <Field
+                                label="Category"
+                                required
+                                error={errors.category?.message}
+                            >
+                                <Controller
+                                    name="category"
+                                    control={control}
+                                    rules={{
+                                        required: "Please select a room category.",
+                                    }}
+                                    render={({ field }) => (
+                                        <Select
+                                            value={field.value || undefined}
+                                            onValueChange={field.onChange}
+                                        >
+                                            <SelectTrigger className="input">
+                                                <SelectValue placeholder="Select category" />
+                                            </SelectTrigger>
+
+                                            <SelectContent>
+                                                {categories.map((category) => (
+                                                    <SelectItem key={category} value={category}>
+                                                        {category}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </Field>
+
+                            <Field label="Floor" required error={errors.floor?.message}>
+                                <input
+                                    {...register("floor", {
+                                        valueAsNumber: true,
+                                        required: "Floor is required.",
+                                        min: { value: 1, message: "Floor must be at least 1." },
+                                    })}
+                                    type="number"
+                                    min="1"
+                                    className="input"
+                                    placeholder="2"
+                                />
+                            </Field>
+
+                            <Field label="Status" required error={errors.status?.message}>
+                                <Controller
+                                    name="status"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                            <SelectTrigger className="input">
+                                                <SelectValue />
+                                            </SelectTrigger>
+
+                                            <SelectContent>
+                                                <SelectItem value="Available">Available</SelectItem>
+                                                <SelectItem value="Occupied">Occupied</SelectItem>
+                                                <SelectItem value="Cleaning">Cleaning</SelectItem>
+                                                <SelectItem value="Maintenance">Maintenance</SelectItem>
+                                                <SelectItem value="Blocked">Blocked</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </Field>
+
+                            <Field
+                                label="Price / Night"
+                                required
+                                error={errors.price?.message}
+                            >
+                                <div className="relative">
+                                    <span className="top-1/2 left-3 absolute font-medium text-muted-foreground text-sm -translate-y-1/2 pointer-events-none">
+                                        $
+                                    </span>
+
                                     <input
-                                        {...register("name", {
-                                            required: "Room name is required.",
-                                            minLength: {
-                                                value: 2,
-                                                message: "Room name must contain at least 2 characters.",
+                                        {...register("price", {
+                                            valueAsNumber: true,
+                                            required: "Price is required.",
+                                            min: {
+                                                value: 0,
+                                                message: "Price cannot be negative.",
                                             },
                                         })}
-                                        className="input"
-                                        placeholder="e.g. Family Deluxe Room"
+                                        type="number"
+                                        min="0"
+                                        step="0.1"
+                                        className="pl-6! input"
+                                        placeholder="230"
                                     />
-                                </Field>
+                                </div>
+                            </Field>
 
-                                <Field
-                                    label="Category"
-                                    required
-                                    error={errors.category?.message}
-                                >
-                                    <select
-                                        {...register("category", {
-                                            required: "Please select a room category.",
-                                        })}
-                                        className="input"
-                                    >
-                                        <option value="">Select category</option>
+                            <Field
+                                label="Maximum Guests"
+                                required
+                                error={errors.capacity?.message}
+                            >
+                                <div className="relative">
+                                    <Users className="top-1/2 left-3 absolute w-4 h-4 text-muted-foreground -translate-y-1/2 pointer-events-none" />
 
-                                        {categories.map((category) => (
-                                            <option key={category} value={category}>
-                                                {category}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </Field>
-
-                                <Field label="Floor" required error={errors.floor?.message}>
                                     <input
-                                        {...register("floor", {
+                                        {...register("capacity", {
                                             valueAsNumber: true,
-                                            required: "Floor is required.",
-                                            min: { value: 1, message: "Floor must be at least 1." },
+                                            required: "Maximum guests is required.",
+                                            min: {
+                                                value: 1,
+                                                message: "At least 1 guest is required.",
+                                            },
                                         })}
                                         type="number"
                                         min="1"
-                                        className="input"
-                                        placeholder="2"
+                                        className="pl-8! input"
+                                        placeholder="4"
                                     />
-                                </Field>
+                                </div>
+                            </Field>
 
-                                <Field label="Status" required error={errors.status?.message}>
-                                    <select {...register("status")} className="input">
-                                        <option value="Available">Available</option>
-                                        <option value="Occupied">Occupied</option>
-                                        <option value="Cleaning">Cleaning</option>
-                                        <option value="Maintenance">Maintenance</option>
-                                        <option value="Blocked">Blocked</option>
-                                    </select>
-                                </Field>
+                            <Field
+                                label="Room Size"
+                                required
+                                error={errors.size?.message}
+                            >
+                                <input
+                                    {...register("size", {
+                                        valueAsNumber: true,
+                                        required: "Room size is required.",
+                                        min: { value: 1, message: "Room size must be greater than zero." },
+                                    })}
+                                    type="number"
+                                    min="1"
+                                    className="input"
+                                    placeholder="30"
+                                />
+                            </Field>
 
-                                <Field
-                                    label="Price / Night"
-                                    required
-                                    error={errors.price?.message}
-                                >
-                                    <div className="relative">
-                                        <span className="top-1/2 left-3 absolute font-medium text-muted-foreground text-sm -translate-y-1/2 pointer-events-none">
-                                            $
-                                        </span>
+                            <Field
+                                label="Beds"
+                                required
+                                error={errors.bedCount?.message}
+                            >
+                                <div className="relative">
+                                    <BedDouble className="top-1/2 left-3 absolute w-4 h-4 text-muted-foreground -translate-y-1/2 pointer-events-none" />
 
-                                        <input
-                                            {...register("price", {
-                                                valueAsNumber: true,
-                                                required: "Price is required.",
-                                                min: {
-                                                    value: 0,
-                                                    message: "Price cannot be negative.",
-                                                },
-                                            })}
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            className="pl-8 input"
-                                            placeholder="230"
-                                        />
-                                    </div>
-                                </Field>
-
-                                <Field
-                                    label="Maximum Guests"
-                                    required
-                                    error={errors.maxGuests?.message}
-                                >
-                                    <div className="relative">
-                                        <Users className="top-1/2 left-3 absolute w-4 h-4 text-muted-foreground -translate-y-1/2 pointer-events-none" />
-
-                                        <input
-                                            {...register("maxGuests", {
-                                                valueAsNumber: true,
-                                                required: "Maximum guests is required.",
-                                                min: {
-                                                    value: 1,
-                                                    message: "At least 1 guest is required.",
-                                                },
-                                            })}
-                                            type="number"
-                                            min="1"
-                                            className="pl-10 input"
-                                            placeholder="4"
-                                        />
-                                    </div>
-                                </Field>
-
-                                <Field
-                                    label="Room Size"
-                                    required
-                                    error={errors.size?.message}
-                                >
                                     <input
-                                        {...register("size", {
+                                        {...register("bedCount", {
                                             valueAsNumber: true,
-                                            required: "Room size is required.",
-                                            min: { value: 1, message: "Room size must be greater than zero." },
+                                            required: "Bed configuration is required.",
+                                            min: { value: 1, message: "At least one bed is required." },
                                         })}
                                         type="number"
                                         min="1"
-                                        className="input"
-                                        placeholder="30"
+                                        className="pl-8! input"
+                                        placeholder="1"
                                     />
-                                </Field>
+                                </div>
+                            </Field>
 
-                                <Field
-                                    label="Beds"
-                                    required
-                                    error={errors.beds?.message}
-                                    className="md:col-span-2"
-                                >
-                                    <div className="relative">
-                                        <BedDouble className="top-1/2 left-3 absolute w-4 h-4 text-muted-foreground -translate-y-1/2 pointer-events-none" />
+                            <Field label="Bed Type" required error={errors.bedType?.message}>
+                                <Controller
+                                    name="bedType"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                            <SelectTrigger className="input">
+                                                <SelectValue />
+                                            </SelectTrigger>
 
-                                        <input
-                                                {...register("beds", {
-                                                    valueAsNumber: true,
-                                                    required: "Bed configuration is required.",
-                                                    min: { value: 1, message: "At least one bed is required." },
-                                                })}
-                                                type="number"
-                                                min="1"
-                                            className="pl-10 input"
-                                                placeholder="1"
-                                            />
-                                    </div>
-                                </Field>
+                                            <SelectContent>
+                                                <SelectItem value="Single">Single</SelectItem>
+                                                <SelectItem value="Twin">Twin</SelectItem>
+                                                <SelectItem value="Double">Double</SelectItem>
+                                                <SelectItem value="Queen">Queen</SelectItem>
+                                                <SelectItem value="King">King</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </Field>
 
-                                <Field label="Bed Type" required error={errors.bedType?.message}>
-                                    <select {...register("bedType")} className="input">
-                                            <option value="Single">Single</option>
-                                            <option value="Twin">Twin</option>
-                                            <option value="Double">Double</option>
-                                            <option value="Queen">Queen</option>
-                                            <option value="King">King</option>
-                                    </select>
-                                </Field>
-                            </div>
-                        </section>
+                        </div>
 
                         {/* Description */}
                         <section className="pt-7 border-border border-t">
@@ -679,30 +766,36 @@ export default function CreateRoomModal({
 
                                     <button
                                         type="button"
-                                        onClick={() => addAmenity()}
+                                        onClick={() => void addAmenity()}
+                                        disabled={isAddingAmenity}
                                         className="inline-flex justify-center items-center gap-2 bg-secondary hover:bg-secondary/80 px-4 rounded-xl min-h-11 font-medium text-secondary-foreground text-sm transition"
                                     >
-                                        <Plus className="w-4 h-4" />
-                                        Add
+                                        {isAddingAmenity ? (
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Plus className="w-4 h-4" />
+                                        )}
+                                        {isAddingAmenity ? "Adding..." : "Add"}
                                     </button>
                                 </div>
 
                                 {/* Quick amenities */}
                                 <div className="flex flex-wrap gap-2 mt-3">
-                                    {DEFAULT_AMENITIES.filter(
+                                    {availableAmenities.filter(
                                         (amenity) =>
                                             !amenities.some(
                                                 (selected) =>
-                                                    selected.toLowerCase() === amenity.toLowerCase()
+                                                    selected.toLowerCase() === amenity.name.toLowerCase()
                                             )
                                     ).map((amenity) => (
                                         <button
-                                            key={amenity}
+                                            key={amenity.id}
                                             type="button"
-                                            onClick={() => addAmenity(amenity)}
+                                            onClick={() => void addAmenity(amenity.name)}
+                                            disabled={isAddingAmenity}
                                             className="bg-background px-3 py-1.5 border border-border hover:border-primary rounded-full text-muted-foreground hover:text-primary text-xs transition"
                                         >
-                                            + {amenity}
+                                            + {amenity.name}
                                         </button>
                                     ))}
                                 </div>
@@ -867,7 +960,7 @@ export default function CreateRoomModal({
 
                                 <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-full font-medium text-primary text-xs">
                                     <Users className="w-3.5 h-3.5" />
-                                    Up to {maxGuests || 0} guests
+                                    Up to {capacity || 0} guests
                                 </div>
                             </div>
 
@@ -936,7 +1029,7 @@ export default function CreateRoomModal({
                     </div>
                 </form>
             </div>
-        </div>
+        </div >
     );
 }
 

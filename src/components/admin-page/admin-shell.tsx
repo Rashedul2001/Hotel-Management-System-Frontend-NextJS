@@ -41,7 +41,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
-        {children}
+        <div className="admin-content">{children}</div>
       </main>
     </>
   );

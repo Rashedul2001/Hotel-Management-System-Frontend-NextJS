@@ -6,6 +6,8 @@
 //****************************************/
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
+import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 
 import {
   FaBed,
@@ -29,34 +31,31 @@ import {
 } from "react-icons/fa6";
 
 import {
-  createRoom,
-  deleteRoom,
-  getRooms,
-  updateRoom,
-  updateRoomStatus,
-} from "@/lib/mock/room-api";
+  createAdminRoom,
+  deleteAdminRoom,
+  getAdminRooms,
+  updateAdminRoom,
+  updateAdminRoomStatus,
+} from "@/lib/admin-rooms-api";
 
-import type {
-  CreateRoomInput,
-  Room,
-  RoomStatus,
-  RoomType,
-} from "@/types/room";
+import type { Room, RoomStatus } from "@/types/room";
+import { toast } from "sonner";
 
 import CreateRoomModal, {
   type RoomFormValues,
 } from "@/components/admin/rooms/create-room-modal";
+import Image from "next/image";
 
 const PAGE_SIZE = 7;
 
-const roomTypes: Array<RoomType | "All"> = [
+const roomCategories: string[] = [
   "All",
   "Standard",
   "Deluxe",
   "Suite",
   "Executive",
   "Family",
-];
+] as const;
 
 const statuses: Array<RoomStatus | "All"> = [
   "All",
@@ -83,7 +82,15 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function statusClasses(status: RoomStatus) {
+function imageUrl(room: Room) {
+  return room.images[0]?.imageUrl;
+}
+
+function amenityNames(room: Room) {
+  return room.amenities.map((amenity) => amenity.name);
+}
+
+function statusClasses(status: string) {
   switch (status) {
     case "Available":
       return "bg-emerald-50 text-emerald-700 border-emerald-200";
@@ -105,7 +112,7 @@ function statusClasses(status: RoomStatus) {
   }
 }
 
-function statusIcon(status: RoomStatus) {
+function statusIcon(status: string) {
   switch (status) {
     case "Available":
       return <FaCheck />;
@@ -129,14 +136,22 @@ function statusIcon(status: RoomStatus) {
 
 export default function RoomsPageClient() {
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [totalRooms, setTotalRooms] = useState(0);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
 
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState<RoomStatus | "All">("All");
-  const [type, setType] = useState<RoomType | "All">("All");
-
-  const [page, setPage] = useState(1);
+  const [parameters, setParameters] = useQueryStates(
+    {
+      pageNumber: parseAsInteger.withDefault(1),
+      pageSize: parseAsInteger.withDefault(PAGE_SIZE),
+      SearchTerm: parseAsString.withDefault(""),
+      Status: parseAsString.withDefault("All"),
+      Category: parseAsString.withDefault("All"),
+    },
+    { shallow: false },
+  );
 
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -151,54 +166,74 @@ export default function RoomsPageClient() {
     try {
       setLoading(true);
 
-      const data = await getRooms({
-        search,
-        status,
-        type,
+      const data = await getAdminRooms({
+        pageNumber: parameters.pageNumber,
+        pageSize: parameters.pageSize,
+        searchTerm: parameters.SearchTerm.trim() || undefined,
+        status:
+          parameters.Status === "All"
+            ? undefined
+            : (parameters.Status as RoomStatus),
+        category:
+          parameters.Category === "All" ? undefined : parameters.Category,
       });
+      setRooms(data.rooms);
+      setTotalRooms(data.totalRooms);
+      setError(null);
 
-      setRooms(data);
-    } catch {
-      // Mock API should not normally fail here.
+      const lastPage = Math.max(
+        1,
+        Math.ceil(data.totalRooms / parameters.pageSize),
+      );
+      if (parameters.pageNumber > lastPage) {
+        await setParameters({ pageNumber: lastPage });
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to load rooms.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
-  }, [search, status, type]);
+  }, [
+    parameters.Category,
+    parameters.SearchTerm,
+    parameters.Status,
+    parameters.pageNumber,
+    parameters.pageSize,
+  ]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      loadRooms();
-    }, 250);
-
-    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadRooms();
   }, [loadRooms]);
 
-  useEffect(() => {
-
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPage(1);
-  }, [search, status, type]);
+  const updateSearch = useDebouncedCallback(() => {
+    setParameters({ SearchTerm: searchInput || null, pageNumber: 1 });
+  }, 300);
+  const searchRooms = (value: string) => {
+    setSearchInput(value);
+    updateSearch();
+  };
 
   const statistics = useMemo(() => {
     return {
-      total: rooms.length,
+      total: totalRooms,
       available: rooms.filter((room) => room.status === "Available").length,
       occupied: rooms.filter((room) => room.status === "Occupied").length,
       cleaning: rooms.filter((room) => room.status === "Cleaning").length,
       maintenance: rooms.filter((room) => room.status === "Maintenance").length,
       blocked: rooms.filter((room) => room.status === "Blocked").length,
     };
-  }, [rooms]);
+  }, [rooms, totalRooms]);
 
-  const totalPages = Math.max(1, Math.ceil(rooms.length / PAGE_SIZE));
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalRooms / parameters.pageSize),
+  );
 
-  const paginatedRooms = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-
-    return rooms.slice(start, start + PAGE_SIZE);
-  }, [rooms, page]);
-
-  function openCreateForm() {
+  const openCreateForm = () => {
     setEditingRoom(null);
     setShowForm(true);
   }
@@ -221,30 +256,35 @@ export default function RoomsPageClient() {
   async function handleRoomSubmit(values: RoomFormValues) {
     try {
       setActionLoading(true);
-      const roomInput: CreateRoomInput = {
+      const roomInput = {
         roomNumber: values.roomNumber.trim(),
         name: values.name.trim(),
-        type: values.category as RoomType,
+        category: values.category,
         floor: values.floor,
         status: values.status,
-        pricePerNight: values.price,
-        capacity: values.maxGuests,
-        beds: values.beds,
+        price: values.price,
+        capacity: values.capacity,
+        bedCount: values.bedCount,
         bedType: values.bedType,
         size: values.size,
         description: values.description.trim(),
-        amenities: values.amenities,
-        images: editingRoom?.images ?? [],
+        amenityIds: values.amenityIds,
       };
 
       if (editingRoom) {
-        await updateRoom(editingRoom.id, roomInput);
+        await updateAdminRoom(editingRoom.id, roomInput, values.images);
       } else {
-        await createRoom(roomInput);
+        await createAdminRoom(roomInput, values.images);
       }
 
       setShowForm(false);
       await loadRooms();
+      toast.success(editingRoom ? "Room updated." : "Room created.");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to save the room.";
+      toast.error(message);
+      throw error;
     } finally {
       setActionLoading(false);
     }
@@ -256,14 +296,17 @@ export default function RoomsPageClient() {
     try {
       setActionLoading(true);
 
-      await deleteRoom(selectedRoom.id);
+      await deleteAdminRoom(selectedRoom.id);
 
       setShowDelete(false);
       setSelectedRoom(null);
 
       await loadRooms();
-    } catch {
-      // In a real API, show toast/error state.
+      toast.success("Room deleted.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to delete room.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -274,13 +317,18 @@ export default function RoomsPageClient() {
       setActionLoading(true);
       setShowStatusMenu(null);
 
-      const updated = await updateRoomStatus(room.id, newStatus);
+      const updated = await updateAdminRoomStatus(room.id, newStatus);
 
       setRooms((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
-    } catch {
-      // In a real API, show toast/error state.
+      toast.success("Room status updated.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to update room status.",
+      );
     } finally {
       setActionLoading(false);
     }
@@ -303,14 +351,15 @@ export default function RoomsPageClient() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
+            {/* currently no need for refresh like this make it automatic  */}
+            {/* <button
               type="button"
               onClick={loadRooms}
               className="inline-flex items-center gap-2 bg-card hover:bg-accent px-4 border border-border rounded-xl h-10 font-medium text-foreground text-sm transition"
             >
               <FaRotate className={loading ? "animate-spin" : ""} />
               Refresh
-            </button>
+            </button> */}
 
             <button
               type="button"
@@ -374,9 +423,9 @@ export default function RoomsPageClient() {
               <FaMagnifyingGlass className="top-1/2 left-3 absolute text-muted-foreground text-sm -translate-y-1/2 pointer-events-none" />
 
               <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search room number, room name or type..."
+                value={searchInput}
+                onChange={(event) => searchRooms(event.target.value)}
+                placeholder="Search room number, room name or description..."
                 className="bg-background pr-4 pl-10 border border-input focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/20 w-full h-11 text-foreground placeholder:text-muted-foreground text-sm transition"
               />
             </div>
@@ -386,9 +435,12 @@ export default function RoomsPageClient() {
                 <FaFilter className="top-1/2 left-3 absolute text-muted-foreground text-xs -translate-y-1/2 pointer-events-none" />
 
                 <select
-                  value={status}
+                  value={parameters.Status}
                   onChange={(event) =>
-                    setStatus(event.target.value as RoomStatus | "All")
+                    setParameters({
+                      Status: event.target.value,
+                      pageNumber: 1,
+                    })
                   }
                   className="bg-background pr-8 pl-9 border border-input focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/20 w-full min-w-[180px] h-11 text-foreground text-sm appearance-none"
                 >
@@ -401,15 +453,18 @@ export default function RoomsPageClient() {
               </div>
 
               <select
-                value={type}
+                value={parameters.Category}
                 onChange={(event) =>
-                  setType(event.target.value as RoomType | "All")
+                  setParameters({
+                    Category: event.target.value,
+                    pageNumber: 1,
+                  })
                 }
                 className="bg-background px-4 border border-input focus:border-primary rounded-xl outline-none focus:ring-2 focus:ring-primary/20 min-w-[170px] h-11 text-foreground text-sm"
               >
-                {roomTypes.map((item) => (
+                {roomCategories.map((item) => (
                   <option key={item} value={item}>
-                    {item === "All" ? "All room types" : item}
+                    {item === "All" ? "All room categories" : item}
                   </option>
                 ))}
               </select>
@@ -424,8 +479,8 @@ export default function RoomsPageClient() {
               <h2 className="font-semibold text-foreground">Room Inventory</h2>
 
               <p className="mt-1 text-muted-foreground text-xs">
-                {rooms.length} room
-                {rooms.length !== 1 ? "s" : ""} found
+                {totalRooms} room
+                {totalRooms !== 1 ? "s" : ""} found
               </p>
             </div>
 
@@ -435,15 +490,44 @@ export default function RoomsPageClient() {
             </div>
           </div>
 
-          {loading ? (
+          {error && !loading ? (
+            <div className="flex flex-col items-center px-6 py-16 text-center">
+              <FaCircleExclamation className="text-red-500 text-3xl" />
+              <h3 className="mt-4 font-semibold text-foreground">
+                Unable to load rooms
+              </h3>
+              <p className="mt-1 max-w-md text-muted-foreground text-sm">
+                {error}
+              </p>
+              <button
+                type="button"
+                onClick={loadRooms}
+                className="inline-flex items-center gap-2 bg-primary hover:opacity-90 mt-5 px-4 rounded-lg h-9 font-semibold text-primary-foreground text-xs"
+              >
+                <FaRotate />
+                Try again
+              </button>
+            </div>
+          ) : loading ? (
             <LoadingState />
-          ) : paginatedRooms.length === 0 ? (
+          ) : rooms.length === 0 ? (
             <EmptyState
-              search={search}
+              search={
+                Boolean(
+                  parameters.SearchTerm ||
+                  parameters.Status !== "All" ||
+                  parameters.Category !== "All",
+                )
+              }
               onClear={() => {
-                setSearch("");
-                setStatus("All");
-                setType("All");
+                updateSearch.cancel();
+                setSearchInput("");
+                setParameters({
+                  SearchTerm: null,
+                  Status: null,
+                  Category: null,
+                  pageNumber: 1,
+                });
               }}
               onAdd={openCreateForm}
             />
@@ -455,7 +539,7 @@ export default function RoomsPageClient() {
                   <thead>
                     <tr className="bg-muted/40 border-border border-b text-muted-foreground text-xs text-left uppercase tracking-wider">
                       <th className="px-6 py-4 font-semibold">Room</th>
-                      <th className="px-6 py-4 font-semibold">Type</th>
+                      <th className="px-6 py-4 font-semibold">Category</th>
                       <th className="px-6 py-4 font-semibold">Floor</th>
                       <th className="px-6 py-4 font-semibold">Capacity</th>
                       <th className="px-6 py-4 font-semibold">Price</th>
@@ -467,7 +551,7 @@ export default function RoomsPageClient() {
                   </thead>
 
                   <tbody className="divide-y divide-border">
-                    {paginatedRooms.map((room) => (
+                    {rooms.map((room) => (
                       <RoomRow
                         key={room.id}
                         room={room}
@@ -492,7 +576,7 @@ export default function RoomsPageClient() {
 
               {/* Mobile cards */}
               <div className="lg:hidden divide-y divide-border">
-                {paginatedRooms.map((room) => (
+                {rooms.map((room) => (
                   <MobileRoomCard
                     key={room.id}
                     room={room}
@@ -508,24 +592,31 @@ export default function RoomsPageClient() {
                 <p className="text-muted-foreground text-xs">
                   Showing{" "}
                   <span className="font-medium text-foreground">
-                    {rooms.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
+                    {totalRooms === 0
+                      ? 0
+                      : (parameters.pageNumber - 1) * parameters.pageSize + 1}
                   </span>{" "}
                   to{" "}
                   <span className="font-medium text-foreground">
-                    {Math.min(page * PAGE_SIZE, rooms.length)}
+                    {Math.min(
+                      parameters.pageNumber * parameters.pageSize,
+                      totalRooms,
+                    )}
                   </span>{" "}
                   of{" "}
                   <span className="font-medium text-foreground">
-                    {rooms.length}
+                    {totalRooms}
                   </span>
                 </p>
 
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    disabled={page <= 1}
+                    disabled={parameters.pageNumber <= 1}
                     onClick={() =>
-                      setPage((current) => Math.max(1, current - 1))
+                      setParameters({
+                        pageNumber: Math.max(1, parameters.pageNumber - 1),
+                      })
                     }
                     className="inline-flex items-center gap-2 hover:bg-accent disabled:opacity-40 px-3 border border-border rounded-lg h-9 text-foreground text-sm transition disabled:cursor-not-allowed"
                   >
@@ -534,14 +625,19 @@ export default function RoomsPageClient() {
                   </button>
 
                   <span className="hidden sm:inline text-muted-foreground text-sm">
-                    Page {page} of {totalPages}
+                    Page {parameters.pageNumber} of {totalPages}
                   </span>
 
                   <button
                     type="button"
-                    disabled={page >= totalPages}
+                    disabled={parameters.pageNumber >= totalPages}
                     onClick={() =>
-                      setPage((current) => Math.min(totalPages, current + 1))
+                      setParameters({
+                        pageNumber: Math.min(
+                          totalPages,
+                          parameters.pageNumber + 1,
+                        ),
+                      })
                     }
                     className="inline-flex items-center gap-2 hover:bg-accent disabled:opacity-40 px-3 border border-border rounded-lg h-9 text-foreground text-sm transition disabled:cursor-not-allowed"
                   >
@@ -565,17 +661,18 @@ export default function RoomsPageClient() {
                 id: editingRoom.id,
                 roomNumber: editingRoom.roomNumber,
                 name: editingRoom.name,
-                category: editingRoom.type,
+                category: editingRoom.category,
                 floor: editingRoom.floor,
-                status: editingRoom.status,
-                price: editingRoom.pricePerNight,
-                maxGuests: editingRoom.capacity,
-                beds: editingRoom.beds,
-                bedType: editingRoom.bedType,
+                status: editingRoom.status as RoomStatus,
+                price: editingRoom.price,
+                capacity: editingRoom.capacity,
+                bedCount: editingRoom.bedCount,
+                bedType: editingRoom.bedType as RoomFormValues["bedType"],
                 size: editingRoom.size,
                 description: editingRoom.description,
-                amenities: editingRoom.amenities,
-                images: editingRoom.images,
+                amenities: amenityNames(editingRoom),
+                amenityIds: editingRoom.amenities.map((amenity) => amenity.id),
+                images: editingRoom.images.map((image) => image.imageUrl),
               }
               : null
           }
@@ -677,10 +774,12 @@ function RoomRow({
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
           <div className="flex justify-center items-center bg-muted rounded-xl w-11 h-11 overflow-hidden shrink-0">
-            {room.images[0] ? (
-              <img
-                src={room.images[0]}
+            {imageUrl(room) ? (
+              <Image
+                src={imageUrl(room)}
                 alt={room.name}
+                width={100}
+                height={100}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -706,7 +805,7 @@ function RoomRow({
 
       <td className="px-6 py-4">
         <span className="bg-muted px-2.5 py-1 rounded-lg font-medium text-foreground text-xs">
-          {room.type}
+          {room.category}
         </span>
       </td>
 
@@ -721,13 +820,13 @@ function RoomRow({
         </div>
 
         <p className="mt-1 text-muted-foreground text-xs">
-          {room.beds} × {room.bedType}
+          {room.bedCount} × {room.bedType}
         </p>
       </td>
 
       <td className="px-6 py-4">
         <p className="font-semibold text-foreground text-sm">
-          {formatCurrency(room.pricePerNight)}
+          {formatCurrency(room.price)}
         </p>
 
         <p className="text-muted-foreground text-xs">per night</p>
@@ -853,10 +952,12 @@ function MobileRoomCard({
     <div className="p-4">
       <div className="flex gap-3">
         <div className="bg-muted rounded-xl w-20 h-20 overflow-hidden shrink-0">
-          {room.images[0] ? (
-            <img
-              src={room.images[0]}
+          {imageUrl(room) ? (
+            <Image
+              src={imageUrl(room)}
               alt={room.name}
+              width={100}
+              height={100}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -892,10 +993,10 @@ function MobileRoomCard({
           </div>
 
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-muted-foreground text-xs">
-            <span>{room.type}</span>
+            <span>            {room.category}</span>
             <span>Floor {room.floor}</span>
             <span>{room.capacity} guests</span>
-            <span>{formatCurrency(room.pricePerNight)}/night</span>
+            <span>            {formatCurrency(room.price)}/night</span>
           </div>
         </div>
       </div>
@@ -950,10 +1051,12 @@ function RoomDetailsModal({
     <ModalOverlay onClose={onClose}>
       <div className="bg-card shadow-2xl border border-border rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto">
         <div className="relative bg-muted h-56 sm:h-72 overflow-hidden">
-          {room.images[0] ? (
-            <img
-              src={room.images[0]}
+          {imageUrl(room) ? (
+            <Image
+              src={imageUrl(room)}
               alt={room.name}
+              width={100}
+              height={100}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -962,7 +1065,7 @@ function RoomDetailsModal({
             </div>
           )}
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/10 to-transparent" />
 
           <button
             type="button"
@@ -980,7 +1083,7 @@ function RoomDetailsModal({
             <h2 className="mt-2 font-bold text-2xl">{room.name}</h2>
 
             <p className="mt-1 text-white/80 text-sm">
-              {room.type} · Floor {room.floor}
+              {room.category} · Floor {room.floor}
             </p>
           </div>
         </div>
@@ -991,7 +1094,7 @@ function RoomDetailsModal({
 
             <InfoBox
               label="Price"
-              value={`${formatCurrency(room.pricePerNight)}/night`}
+              value={`${formatCurrency(room.price)}/night`}
             />
 
             <InfoBox label="Capacity" value={`${room.capacity} guests`} />
@@ -1016,8 +1119,8 @@ function RoomDetailsModal({
             </h3>
 
             <p className="mt-2 text-muted-foreground text-sm">
-              {room.beds} × {room.bedType} bed
-              {room.beds !== 1 ? "s" : ""}
+              {room.bedCount} × {room.bedType} bed
+              {room.bedCount !== 1 ? "s" : ""}
             </p>
           </div>
 
@@ -1028,10 +1131,10 @@ function RoomDetailsModal({
               {room.amenities.length > 0 ? (
                 room.amenities.map((amenity) => (
                   <span
-                    key={amenity}
+                    key={amenity.id}
                     className="bg-muted px-3 py-1.5 rounded-full text-foreground text-xs"
                   >
-                    {amenity}
+                    {amenity.name}
                   </span>
                 ))
               ) : (
@@ -1053,7 +1156,7 @@ function RoomDetailsModal({
             <p className="sm:text-right">
               Updated:{" "}
               <span className="font-medium text-foreground">
-                {formatDate(room.updatedAt)}
+                {formatDate(room.UpdatedAt)}
               </span>
             </p>
           </div>
@@ -1192,7 +1295,7 @@ function EmptyState({
   onClear,
   onAdd,
 }: {
-  search: string;
+  search: boolean;
   onClear: () => void;
   onAdd: () => void;
 }) {

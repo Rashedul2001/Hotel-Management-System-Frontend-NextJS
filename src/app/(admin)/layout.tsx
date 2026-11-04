@@ -9,6 +9,7 @@ import { AuthModalProvider } from "@/providers/auth-modal-context";
 import { RoleGuard } from "@/providers/role-guard";
 import { ROLES } from "@/lib/roles";
 import { Toaster } from "sonner";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 // Primary UI Font
 export const inter = Inter({
@@ -51,7 +52,9 @@ export default function RootLayout({
 
             <AuthModalProvider>
               <RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.SUPER_ADMIN]}>
-                <AdminShell>{children}</AdminShell>
+                <NuqsAdapter>
+                  <AdminShell>{children}</AdminShell>
+                </NuqsAdapter>
               </RoleGuard>
             </AuthModalProvider>
           </AuthProvider>
