@@ -29,6 +29,8 @@ import { Room, RoomAmenity } from "@/types/room"
 
 import { LuArrowDownWideNarrow, LuArrowUpNarrowWide } from "react-icons/lu";
 import { Button } from "../ui/button";
+import { Slider } from "../ui/slider";
+import { Field, FieldDescription, FieldTitle } from "../ui/field";
 import {
     Pagination,
     PaginationContent,
@@ -104,7 +106,6 @@ import { parseAsArrayOf, parseAsBoolean, parseAsFloat, parseAsInteger, parseAsSt
 import { useDebouncedCallback } from 'use-debounce';
 import { apiFetch } from "@/lib/api";
 import RoomCard from "../ui/RoomCard";
-import { Field } from "../ui/field";
 
 
 export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; totalRooms: number }) {
@@ -130,14 +131,15 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
     }, { shallow: false });
 
     const [searchInput, setSearchInput] = useState(parameters.searchTerm);
-    const [minPriceInput, setMinPriceInput] = useState(String(parameters.minPrice));
-    const [maxPriceInput, setMaxPriceInput] = useState(String(parameters.maxPrice));
+    const [priceRange, setPriceRange] = useState<[number, number]>([
+        parameters.minPrice,
+        parameters.maxPrice,
+    ]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setSearchInput(parameters.searchTerm);
-        setMinPriceInput(String(parameters.minPrice));
-        setMaxPriceInput(String(parameters.maxPrice));
+        setPriceRange([parameters.minPrice, parameters.maxPrice]);
     }, [
         parameters.maxPrice,
         parameters.minPrice,
@@ -151,26 +153,19 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
     const debouncedSearch = useDebouncedCallback((value: string) => {
         setParameters({ searchTerm: value || null, pageNumber: 1 });
     }, 500, { maxWait: 2000 });
-    const debouncedMinPrice = useDebouncedCallback((value: string) => {
+    const debouncedPriceRange = useDebouncedCallback((value: [number, number]) => {
         setParameters({
-            minPrice: value === "" ? null : Number(value),
-            pageNumber: 1,
-        });
-    }, 500, { maxWait: 2000 });
-    const debouncedMaxPrice = useDebouncedCallback((value: string) => {
-        setParameters({
-            maxPrice: value === "" ? null : Number(value),
+            minPrice: value[0],
+            maxPrice: value[1],
             pageNumber: 1,
         });
     }, 500, { maxWait: 2000 });
 
     const resetQuery = () => {
         debouncedSearch.cancel();
-        debouncedMinPrice.cancel();
-        debouncedMaxPrice.cancel();
+        debouncedPriceRange.cancel();
         setSearchInput("");
-        setMinPriceInput("0");
-        setMaxPriceInput("500");
+        setPriceRange([0, 500]);
         setParameters({
             pageNumber: null,
             pageSize: null,
@@ -332,8 +327,7 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                 type="button"
                                 onClick={() => {
                                     debouncedSearch.flush();
-                                    debouncedMinPrice.flush();
-                                    debouncedMaxPrice.flush();
+                                    debouncedPriceRange.flush();
                                 }}
                                 className="bg-primary hover:bg-primary/90 px-6 rounded-xl h-12 font-semibold text-primary-foreground text-sm transition"
                             >
@@ -380,7 +374,7 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
 
                         <aside className="hidden lg:block">
 
-                            <div className="top-24 sticky space-y-7">
+                            <div className="top-24 sticky space-y-7 p-4 h-[calc(100vh-8rem)] overflow-y-auto">
 
                                 {/* Category */}
                                 <div>
@@ -426,48 +420,29 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                 </div>
 
                                 {/* Price */}
-                                <div className="pt-6 border-border border-t">
-
-                                    <h3 className="font-semibold text-sm">
-                                        Price per night
-                                    </h3>
-
-                                    <div className="gap-2 grid grid-cols-2 mt-4">
-
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            value={minPriceInput}
-                                            onChange={(event) => {
-                                                const value = event.target.value;
-                                                setMinPriceInput(value);
-                                                debouncedMinPrice(value);
-                                            }}
-                                            placeholder="Min"
-                                            className="bg-background px-3 border border-border focus:border-primary rounded-lg outline-none w-full h-10 text-sm"
-                                        />
-
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            value={maxPriceInput}
-                                            onChange={(event) => {
-                                                const value = event.target.value;
-                                                setMaxPriceInput(value);
-                                                debouncedMaxPrice(value);
-                                            }}
-
-                                            placeholder="Max"
-                                            className="bg-background px-3 border border-border focus:border-primary rounded-lg outline-none w-full h-10 text-sm"
-                                        />
-
-                                    </div>
-
-                                    <p className="mt-2 text-muted-foreground text-xs">
-                                        ${parameters.minPrice} — ${parameters.maxPrice} per night
-                                    </p>
-
-                                </div>
+                                <Field className="pt-6 border-border border-t">
+                                    <FieldTitle>Price per night</FieldTitle>
+                                    <FieldDescription>
+                                        ${priceRange[0]} - ${priceRange[1]} per night
+                                    </FieldDescription>
+                                    <Slider
+                                        value={priceRange}
+                                        onValueChange={(value) => {
+                                            if (!Array.isArray(value)) return;
+                                            const nextRange: [number, number] = [
+                                                value[0],
+                                                value[1],
+                                            ];
+                                            setPriceRange(nextRange);
+                                            debouncedPriceRange(nextRange);
+                                        }}
+                                        min={0}
+                                        max={1000}
+                                        step={10}
+                                        aria-label="Price range"
+                                        className="mt-2"
+                                    />
+                                </Field>
 
                                 {/* Amenities */}
                                 <div className="pt-6 border-border border-t">
@@ -852,42 +827,29 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                         </div>
 
                         {/* Price */}
-                        <div className="mt-7">
-
-                            <h3 className="font-semibold text-sm">
-                                Price per night
-                            </h3>
-
-                            <div className="gap-3 grid grid-cols-2 mt-3">
-
-                                <input
-                                    type="number"
-                                    min={0}
-                                    value={minPriceInput}
-                                    onChange={(event) => {
-                                        const value = event.target.value;
-                                        setMinPriceInput(value);
-                                        debouncedMinPrice(value);
-                                    }}
-                                    placeholder="Minimum"
-                                    className="px-3 border border-border focus:border-primary rounded-xl outline-none h-11 text-sm"
-                                />
-
-                                <input
-                                    type="number"
-                                    min={0}
-                                    value={maxPriceInput}
-                                    onChange={(event) => {
-                                        const value = event.target.value;
-                                        setMaxPriceInput(value);
-                                        debouncedMaxPrice(value);
-                                    }}
-                                    placeholder="Maximum"
-                                    className="px-3 border border-border focus:border-primary rounded-xl outline-none h-11 text-sm"
-                                />
-
-                            </div>
-                        </div>
+                        <Field className="mt-7">
+                            <FieldTitle>Price per night</FieldTitle>
+                            <FieldDescription>
+                                ${priceRange[0]} - ${priceRange[1]} per night
+                            </FieldDescription>
+                            <Slider
+                                value={priceRange}
+                                onValueChange={(value) => {
+                                    if (!Array.isArray(value)) return;
+                                    const nextRange: [number, number] = [
+                                        value[0],
+                                        value[1],
+                                    ];
+                                    setPriceRange(nextRange);
+                                    debouncedPriceRange(nextRange);
+                                }}
+                                min={0}
+                                max={1000}
+                                step={10}
+                                aria-label="Price range"
+                                className="mt-2"
+                            />
+                        </Field>
 
                         {/* Amenities */}
                         <div className="mt-7">

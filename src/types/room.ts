@@ -1,10 +1,13 @@
 export interface RoomAmenity {
   id: number;
   name: string;
+  publicId?: string;
 }
+
 export interface RoomImage {
   id: number;
   imageUrl: string;
+  publicId?: string;
 }
 
 export type RoomStatus =
@@ -16,13 +19,13 @@ export type RoomStatus =
 
 export interface Room {
   id: string;
-  roomNumber: string;
+  roomNumber: number | string;
   name: string;
   category: string;
   floor: number;
-  status: string;
+  status: RoomStatus | string;
   isAvailable: boolean;
-  isFeatured: boolean;
+  isFeatured?: boolean;
   price: number;
   capacity: number;
   bedCount: number;
@@ -30,7 +33,8 @@ export interface Room {
   size: number;
   description: string;
   createdAt: string;
-  UpdatedAt: string;
+  updatedAt?: string;
+  UpdatedAt?: string;
   averageRating: number;
   totalReviews: number;
   images: RoomImage[];

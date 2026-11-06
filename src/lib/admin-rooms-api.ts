@@ -1,12 +1,13 @@
 import { apiFetch } from "@/lib/api";
 import type { Room, RoomAmenity, RoomStatus } from "@/types/room";
 
-type RoomPayload = {
-  roomNumber: string;
+export type RoomPayload = {
+  roomNumber: number;
   name: string;
   category: string;
   floor: number;
   status: RoomStatus;
+  isAvailable?: boolean;
   price: number;
   capacity: number;
   bedCount: number;
@@ -14,6 +15,7 @@ type RoomPayload = {
   size: number;
   description: string;
   amenityIds: number[];
+  existingImageIds?: number[];
 };
 
 export type AdminRoomsQuery = {
@@ -31,11 +33,51 @@ export type AdminRoomsResponse = {
 
 export type RoomAmenityPayload = Pick<RoomAmenity, "id" | "name">;
 
-function getErrorMessage(payload: unknown, fallback: string) {
+export function getErrorMessage(payload: unknown, fallback: string): string {
   if (typeof payload === "object" && payload !== null) {
     const record = payload as Record<string, unknown>;
-    const message = record.message ?? record.title ?? record.error;
 
+    // 1. Check for ASP.NET Development errors array: [{ Field: "...", Error: "..." }]
+    if (Array.isArray(record.errors) && record.errors.length > 0) {
+      const details = record.errors
+        .map((item: unknown) => {
+          if (typeof item === "object" && item !== null) {
+            const errObj = item as Record<string, unknown>;
+            const field = errObj.field ?? errObj.Field ?? "";
+            const msg = errObj.error ?? errObj.Error ?? errObj.errorMessage ?? "";
+            return field ? `${field}: ${msg}` : String(msg);
+          }
+          return String(item);
+        })
+        .filter(Boolean)
+        .join("; ");
+
+      if (details) {
+        const title = record.message ?? record.title ?? "Validation failed";
+        return `${title} — ${details}`;
+      }
+    }
+
+    // 2. Check for standard ASP.NET ValidationProblemDetails: { errors: { Field: ["error"] } }
+    if (
+      record.errors &&
+      typeof record.errors === "object" &&
+      !Array.isArray(record.errors)
+    ) {
+      const entries = Object.entries(record.errors as Record<string, unknown>);
+      if (entries.length > 0) {
+        const details = entries
+          .map(([field, msgs]) => {
+            const msgStr = Array.isArray(msgs) ? msgs.join(", ") : String(msgs);
+            return `${field}: ${msgStr}`;
+          })
+          .join("; ");
+        const title = record.message ?? record.title ?? "Validation failed";
+        return `${title} — ${details}`;
+      }
+    }
+
+    const message = record.message ?? record.title ?? record.error;
     if (typeof message === "string" && message.trim()) {
       return message;
     }
@@ -112,14 +154,14 @@ function extractAmenities(payload: unknown): RoomAmenity[] {
     Array.isArray(payload)
       ? payload
       : typeof payload === "object" &&
-          payload !== null &&
-          "data" in payload &&
-          Array.isArray((payload as { data: unknown }).data)
+        payload !== null &&
+        "data" in payload &&
+        Array.isArray((payload as { data: unknown }).data)
         ? (payload as { data: unknown[] }).data
         : typeof payload === "object" &&
-            payload !== null &&
-            "amenities" in payload &&
-            Array.isArray((payload as { amenities: unknown }).amenities)
+          payload !== null &&
+          "amenities" in payload &&
+          Array.isArray((payload as { amenities: unknown }).amenities)
           ? (payload as { amenities: unknown[] }).amenities
           : null;
 
@@ -142,9 +184,9 @@ function extractAmenities(payload: unknown): RoomAmenity[] {
 function extractAmenity(payload: unknown): RoomAmenity {
   const amenity =
     typeof payload === "object" &&
-    payload !== null &&
-    !Array.isArray(payload) &&
-    "data" in payload
+      payload !== null &&
+      !Array.isArray(payload) &&
+      "data" in payload
       ? (payload as { data: unknown }).data
       : payload;
 
@@ -173,7 +215,7 @@ export async function getRoomAmenities(): Promise<RoomAmenity[]> {
 export async function createRoomAmenity(name: string): Promise<RoomAmenity> {
   const response = await apiFetch("/api/rooms/amenities", {
     method: "POST",
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name: name.trim() }),
   });
 
   const payload = await readResponse<unknown>(
@@ -183,25 +225,69 @@ export async function createRoomAmenity(name: string): Promise<RoomAmenity> {
   return extractAmenity(payload);
 }
 
-function createRoomFormData(payload: RoomPayload, images: File[]) {
+function createRoomFormData(payload: RoomPayload, images: File[] = []): FormData {
   const formData = new FormData();
 
-  Object.entries(payload).forEach(([key, value]) => {
-    if (key === "amenityIds") {
-      (value as number[]).forEach((id) =>
-        formData.append("amenityIds", String(id)),
-      );
-    } else {
-      formData.append(key, String(value));
-    }
-  });
+  const roomNumberVal = Math.floor(Number(payload.roomNumber));
+  formData.append("roomNumber", String(Number.isFinite(roomNumberVal) ? roomNumberVal : 1));
+  formData.append("name", (payload.name || "").trim());
+  formData.append("category", (payload.category || "").trim());
 
-  images.forEach((image) => formData.append("images", image));
+  const floorVal = Math.floor(Number(payload.floor));
+  formData.append("floor", String(Number.isFinite(floorVal) ? floorVal : 1));
+
+  formData.append("status", payload.status || "Available");
+  formData.append(
+    "isAvailable",
+    String(payload.isAvailable ?? (payload.status === "Available")),
+  );
+
+  const priceVal = Number(payload.price);
+  formData.append("price", String(Number.isFinite(priceVal) && priceVal > 0 ? priceVal : 0.01));
+
+  const capacityVal = Math.floor(Number(payload.capacity));
+  formData.append("capacity", String(Number.isFinite(capacityVal) && capacityVal >= 1 ? capacityVal : 1));
+
+  const bedCountVal = Math.floor(Number(payload.bedCount));
+  formData.append("bedCount", String(Number.isFinite(bedCountVal) && bedCountVal >= 1 ? bedCountVal : 1));
+
+  formData.append("bedType", (payload.bedType || "Queen").trim());
+
+  const sizeVal = Math.floor(Number(payload.size));
+  formData.append("size", String(Number.isFinite(sizeVal) && sizeVal >= 1 ? sizeVal : 30));
+
+  formData.append("description", (payload.description || "").trim());
+
+  if (Array.isArray(payload.amenityIds)) {
+    payload.amenityIds.forEach((id) => {
+      const numId = Number(id);
+      if (Number.isFinite(numId)) {
+        formData.append("amenityIds", String(numId));
+      }
+    });
+  }
+
+  if (Array.isArray(payload.existingImageIds)) {
+    payload.existingImageIds.forEach((id) => {
+      const numId = Number(id);
+      if (Number.isFinite(numId)) {
+        formData.append("existingImageIds", String(numId));
+      }
+    });
+  }
+
+  if (Array.isArray(images)) {
+    images.forEach((image) => {
+      if (image instanceof File) {
+        formData.append("images", image);
+      }
+    });
+  }
 
   return formData;
 }
 
-export async function getAdminRooms(
+export async function getRooms(
   query: AdminRoomsQuery,
 ): Promise<AdminRoomsResponse> {
   const searchParams = new URLSearchParams({
@@ -213,7 +299,7 @@ export async function getAdminRooms(
   if (query.status) searchParams.set("Status", query.status);
   if (query.category) searchParams.set("Category", query.category);
 
-  const response = await apiFetch(`/api/rooms?${searchParams}`, {
+  const response = await apiFetch(`/api/rooms?${searchParams.toString()}`, {
     method: "GET",
   });
   const payload = await readResponse<unknown>(
@@ -224,7 +310,7 @@ export async function getAdminRooms(
   return extractRooms(payload);
 }
 
-export async function createAdminRoom(
+export async function createRoom(
   payload: RoomPayload,
   images: File[] = [],
 ): Promise<Room> {
@@ -238,7 +324,7 @@ export async function createAdminRoom(
   );
 }
 
-export async function updateAdminRoom(
+export async function updateRoom(
   id: string,
   payload: RoomPayload,
   images: File[] = [],
@@ -253,12 +339,12 @@ export async function updateAdminRoom(
   );
 }
 
-export async function deleteAdminRoom(id: string): Promise<void> {
+export async function deleteRoom(id: string): Promise<void> {
   const response = await apiFetch(`/api/rooms/${id}`, { method: "DELETE" });
   await readResponse(response, "Unable to delete room.");
 }
 
-export async function updateAdminRoomStatus(
+export async function updateRoomStatus(
   id: string,
   status: RoomStatus,
 ): Promise<Room> {
