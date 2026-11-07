@@ -1,7 +1,6 @@
 import { AdminSection } from "@/components/temp/admin-section";
 
 const sections: Record<string, { title: string; description: string; type: 'rooms' | 'guests' | 'staff' | 'reservations' | 'housekeeping' | 'maintenance' | 'reports' | 'settings' }> = {
-  rooms: { title: 'Rooms', description: 'Manage room inventory, rates, status, and availability.', type: 'rooms' },
   guests: { title: 'Guests', description: 'View guest profiles, stay history, and preferences.', type: 'guests' },
   staff: { title: 'Staff', description: 'Manage your people, departments, roles, and duty status.', type: 'staff' },
   reservations: { title: 'Reservations', description: 'Admin view of upcoming stays, blocks, and booking activity.', type: 'reservations' },

@@ -102,46 +102,35 @@ export default function RoomDetails({
   };
 
   return (
-    <main className="min-h-screen bg-background">
-      {/* Header */}
-      <section className="border-b border-border">
-        <div className="hotel-container py-6">
-          <Link
-            href="/rooms"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            Back to rooms
-          </Link>
-        </div>
-      </section>
+    <main className="bg-background min-h-screen">
 
       {/* Gallery */}
-      <section className="hotel-container py-6 sm:py-8">
-        <div className="grid gap-3 lg:grid-cols-[2fr_1fr]">
+      <section className="py-6 sm:py-8 hotel-container">
+        <div className="gap-3 grid lg:grid-cols-[2fr_1fr]">
+
           <button
             type="button"
             onClick={() => setLightbox(true)}
-            className="group relative aspect-[16/10] overflow-hidden rounded-2xl text-left"
+            className="group relative rounded-2xl aspect-16/10 overflow-hidden text-left"
           >
             <Image
               src={room.images[activeImage]}
               alt={room.name}
               fill
               priority
-              className="object-cover transition duration-700 group-hover:scale-105"
+              className="object-cover group-hover:scale-105 transition duration-700"
               sizes="(max-width: 1024px) 100vw, 66vw"
             />
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/10" />
+            <div className="absolute inset-0 bg-linear-to-t from-black/45 via-transparent to-black/10" />
 
-            <span className="absolute right-4 top-4 inline-flex items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-medium text-white backdrop-blur-md">
+            <span className="inline-flex top-4 right-4 absolute items-center gap-2 bg-black/45 backdrop-blur-md px-3 py-2 rounded-full font-medium text-white text-xs">
               <Expand className="size-3.5" />
               View gallery
             </span>
           </button>
 
-          <div className="hidden grid-cols-2 gap-3 lg:grid">
+          <div className="hidden gap-3 lg:grid grid-cols-2">
             {room.images.slice(1, 5).map((image, index) => (
               <button
                 key={image}
@@ -150,13 +139,13 @@ export default function RoomDetails({
                   setActiveImage(index + 1);
                   setLightbox(true);
                 }}
-                className="group relative overflow-hidden rounded-2xl"
+                className="group relative rounded-2xl overflow-hidden"
               >
                 <Image
                   src={image}
                   alt={`${room.name} ${index + 2}`}
                   fill
-                  className="object-cover transition duration-500 group-hover:scale-105"
+                  className="object-cover group-hover:scale-105 transition duration-500"
                   sizes="25vw"
                 />
               </button>
@@ -166,16 +155,16 @@ export default function RoomDetails({
       </section>
 
       {/* Main content */}
-      <section className="hotel-container pb-16 sm:pb-24">
-        <div className="grid gap-10 lg:grid-cols-[1fr_380px] lg:items-start">
+      <section className="pb-16 sm:pb-24 hotel-container">
+        <div className="lg:items-start gap-10 grid lg:grid-cols-[1fr_380px]">
           <div>
-            <div className="mb-4 flex flex-wrap items-center gap-3">
-              <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold uppercase tracking-wider text-secondary-foreground">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <span className="bg-secondary px-3 py-1 rounded-full font-semibold text-secondary-foreground text-xs uppercase tracking-wider">
                 {room.category}
               </span>
 
               <div className="flex items-center gap-1 text-sm">
-                <Star className="size-4 fill-current" />
+                <Star className="fill-current size-4" />
                 <strong>{room.rating}</strong>
                 <span className="text-muted-foreground">
                   ({room.reviews} reviews)
@@ -183,13 +172,13 @@ export default function RoomDetails({
               </div>
             </div>
 
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex justify-between items-start gap-4">
               <div>
-                <h1 className="hotel-display text-4xl font-semibold tracking-tight sm:text-5xl">
+                <h1 className="font-semibold text-4xl sm:text-5xl tracking-tight hotel-display">
                   {room.name}
                 </h1>
 
-                <div className="mt-4 flex flex-wrap gap-5 text-sm text-muted-foreground">
+                <div className="flex flex-wrap gap-5 mt-4 text-muted-foreground text-sm">
                   <span className="inline-flex items-center gap-2">
                     <Home className="size-4" />
                     {room.size}
@@ -210,34 +199,34 @@ export default function RoomDetails({
               <button
                 type="button"
                 onClick={handleShare}
-                className="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-border transition hover:bg-secondary"
+                className="inline-flex justify-center items-center hover:bg-secondary border border-border rounded-full size-10 transition shrink-0"
                 aria-label="Share room"
               >
                 <Share2 className="size-4" />
               </button>
             </div>
 
-            <div className="my-10 h-px bg-border" />
+            <div className="my-10 bg-border h-px" />
 
             <div>
-              <h2 className="text-xl font-semibold">About this room</h2>
-              <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">
+              <h2 className="font-semibold text-xl">About this room</h2>
+              <p className="mt-4 max-w-3xl text-muted-foreground leading-7">
                 {room.description}
               </p>
             </div>
 
-            <div className="my-10 h-px bg-border" />
+            <div className="my-10 bg-border h-px" />
 
             <div>
-              <h2 className="text-xl font-semibold">Room amenities</h2>
+              <h2 className="font-semibold text-xl">Room amenities</h2>
 
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="gap-4 grid sm:grid-cols-2 mt-6">
                 {room.amenities.map((amenity) => (
                   <div
                     key={amenity}
-                    className="flex items-center gap-3 text-sm text-muted-foreground"
+                    className="flex items-center gap-3 text-muted-foreground text-sm"
                   >
-                    <span className="flex size-8 items-center justify-center rounded-full bg-secondary">
+                    <span className="flex justify-center items-center bg-secondary rounded-full size-8">
                       <Check className="size-4 text-primary" />
                     </span>
                     {amenity}
@@ -246,16 +235,16 @@ export default function RoomDetails({
               </div>
             </div>
 
-            <div className="my-10 h-px bg-border" />
+            <div className="my-10 bg-border h-px" />
 
             <div>
-              <h2 className="text-xl font-semibold">Your stay includes</h2>
+              <h2 className="font-semibold text-xl">Your stay includes</h2>
 
-              <div className="mt-6 grid gap-6 sm:grid-cols-3">
+              <div className="gap-6 grid sm:grid-cols-3 mt-6">
                 <div>
                   <Wifi className="size-5" />
                   <p className="mt-3 font-medium">High-speed Wi-Fi</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-1 text-muted-foreground text-sm">
                     Complimentary throughout the hotel.
                   </p>
                 </div>
@@ -263,7 +252,7 @@ export default function RoomDetails({
                 <div>
                   <Coffee className="size-5" />
                   <p className="mt-3 font-medium">Dining options</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-1 text-muted-foreground text-sm">
                     Thoughtful dining experiences nearby.
                   </p>
                 </div>
@@ -271,7 +260,7 @@ export default function RoomDetails({
                 <div>
                   <Clock3 className="size-5" />
                   <p className="mt-3 font-medium">24/7 support</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <p className="mt-1 text-muted-foreground text-sm">
                     Our team is available whenever you need us.
                   </p>
                 </div>
@@ -280,54 +269,54 @@ export default function RoomDetails({
           </div>
 
           {/* Booking card */}
-          <aside className="lg:sticky lg:top-24">
-            <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
-              <div className="flex items-end justify-between gap-4">
+          <aside className="lg:top-24 lg:sticky">
+            <div className="bg-card shadow-sm p-5 sm:p-6 border border-border rounded-3xl">
+              <div className="flex justify-between items-end gap-4">
                 <div>
-                  <span className="text-3xl font-semibold">
+                  <span className="font-semibold text-3xl">
                     ${room.price}
                   </span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-muted-foreground text-sm">
                     {" "}
                     / night
                   </span>
                 </div>
 
-                <span className="text-sm text-muted-foreground">
+                <span className="text-muted-foreground text-sm">
                   {room.maxGuests} max guests
                 </span>
               </div>
 
-              <div className="mt-6 grid gap-3">
-                <label className="text-sm font-medium">
+              <div className="gap-3 grid mt-6">
+                <label className="font-medium text-sm">
                   Check-in
                   <input
                     type="date"
                     value={checkIn}
                     onChange={(event) => setCheckIn(event.target.value)}
-                    className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring"
+                    className="bg-background mt-2 px-3 border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring w-full h-11 text-sm transition"
                   />
                 </label>
 
-                <label className="text-sm font-medium">
+                <label className="font-medium text-sm">
                   Check-out
                   <input
                     type="date"
                     value={checkOut}
                     min={checkIn || undefined}
                     onChange={(event) => setCheckOut(event.target.value)}
-                    className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none transition focus:ring-2 focus:ring-ring"
+                    className="bg-background mt-2 px-3 border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring w-full h-11 text-sm transition"
                   />
                 </label>
 
-                <label className="text-sm font-medium">
+                <label className="font-medium text-sm">
                   Guests
                   <select
                     value={guests}
                     onChange={(event) =>
                       setGuests(Number(event.target.value))
                     }
-                    className="mt-2 h-11 w-full rounded-xl border border-input bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    className="bg-background mt-2 px-3 border border-input rounded-xl outline-none focus:ring-2 focus:ring-ring w-full h-11 text-sm"
                   >
                     {Array.from(
                       { length: room.maxGuests },
@@ -344,18 +333,18 @@ export default function RoomDetails({
               <button
                 type="button"
                 onClick={handleBook}
-                className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 font-semibold text-primary-foreground transition hover:opacity-90"
+                className="flex justify-center items-center gap-2 bg-primary hover:opacity-90 mt-5 px-5 rounded-xl w-full h-12 font-semibold text-primary-foreground transition"
               >
                 Continue to checkout
                 <ArrowRight className="size-4" />
               </button>
 
-              <p className="mt-4 text-center text-xs leading-5 text-muted-foreground">
+              <p className="mt-4 text-muted-foreground text-xs text-center leading-5">
                 You will review your reservation before confirming.
               </p>
             </div>
 
-            <div className="mt-4 flex items-start gap-3 rounded-2xl bg-secondary/60 p-4 text-sm">
+            <div className="flex items-start gap-3 bg-secondary/60 mt-4 p-4 rounded-2xl text-sm">
               <MapPin className="mt-0.5 size-4 shrink-0" />
               <div>
                 <p className="font-medium">Velora Hotels</p>
@@ -370,11 +359,11 @@ export default function RoomDetails({
 
       {/* Lightbox */}
       {lightbox && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+        <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/90 p-4">
           <button
             type="button"
             onClick={() => setLightbox(false)}
-            className="absolute right-5 top-5 z-10 flex size-11 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md hover:bg-white/20"
+            className="top-5 right-5 z-10 absolute flex justify-center items-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full size-11 text-white"
             aria-label="Close gallery"
           >
             <X className="size-5" />
@@ -383,13 +372,13 @@ export default function RoomDetails({
           <button
             type="button"
             onClick={previousImage}
-            className="absolute left-4 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md hover:bg-white/20"
+            className="top-1/2 left-4 absolute flex justify-center items-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full size-11 text-white -translate-y-1/2"
             aria-label="Previous image"
           >
             <ChevronLeft />
           </button>
 
-          <div className="relative h-[80vh] w-full max-w-6xl">
+          <div className="relative w-full max-w-6xl h-[80vh]">
             <Image
               src={room.images[activeImage]}
               alt={room.name}
@@ -402,13 +391,13 @@ export default function RoomDetails({
           <button
             type="button"
             onClick={nextImage}
-            className="absolute right-4 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-md hover:bg-white/20"
+            className="top-1/2 right-4 absolute flex justify-center items-center bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full size-11 text-white -translate-y-1/2"
             aria-label="Next image"
           >
             <ChevronRight />
           </button>
 
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-4 py-2 text-sm text-white backdrop-blur-md">
+          <div className="bottom-5 left-1/2 absolute bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-white text-sm -translate-x-1/2">
             {activeImage + 1} / {room.images.length}
           </div>
         </div>

@@ -8,6 +8,7 @@ import { AuthModalProvider } from "@/providers/auth-modal-context";
 import { Toaster } from 'sonner';
 import { AuthProvider } from "@/providers/AuthContext";
 import Footer from "@/components/shared/footer";
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -52,18 +53,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           enableSystem
           disableTransitionOnChange
         >
-
-
-          <AuthProvider>
-            <AuthModalProvider>
-              <Navbar />
-              {children}
-              <Footer/>
-            </AuthModalProvider>
-          </AuthProvider>
-
-
-
+          <NuqsAdapter>
+            <AuthProvider>
+              <AuthModalProvider>
+                <Navbar />
+                {children}
+                <Footer />
+              </AuthModalProvider>
+            </AuthProvider>
+          </NuqsAdapter>
         </ThemeProvider>
 
         {/* custom sonner toast style and color */}
