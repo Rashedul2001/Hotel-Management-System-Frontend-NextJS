@@ -23,6 +23,8 @@ import {
   CreditCard,
   Edit3,
   ExternalLink,
+  Eye,
+  EyeOff,
   Globe2,
   KeyRound,
   LockKeyhole,
@@ -59,9 +61,11 @@ function displayValue(value?: string) {
 function getProfileCompletion(profile: GuestProfile) {
   const fields = [
     profile.name,
+    profile.preferredName,
     profile.email,
     profile.phoneNumber,
     profile.nationalId,
+    profile.passportNumber,
     profile.dateOfBirth,
     profile.address,
     profile.city,
@@ -120,10 +124,16 @@ export default function ProfilePage({
   onPasswordReset,
   onTwoFactorToggle,
   onNotificationPreferencesChange,
+  onAccountConnect,
+  onAccountDisconnect,
 }: ProfilePageProps) {
   //_____________________________________________________________________________________//
 
   const { user, refreshUser } = useAuth();
+  const [profile, setProfile] = useState(initialProfile);
+  const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
   async function handlePhoto(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -137,41 +147,61 @@ export default function ProfilePage({
       return;
     }
 
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+    // Instantly display preview before network request
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewAvatar(objectUrl);
+    setUploadingPhoto(true);
 
-      const response = await apiFetch("/api/profile/picture", {
-        method: "PUT",
-        body: formData,
-      });
-      const data = await response.json();
+    // Update profile in database in the background
+    (async () => {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
 
-      if (!response.ok) {
-        errorToast(
-          data.message ?? "Profile picture upload failed.",
-          "Please try again",
+        const response = await apiFetch("/api/profile/picture", {
+          method: "PUT",
+          body: formData,
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          setPreviewAvatar(null);
+          URL.revokeObjectURL(objectUrl);
+          errorToast(
+            data.message ?? "Profile picture upload failed.",
+            "Please try again",
+          );
+          return;
+        }
+
+        setProfile((prev) => ({
+          ...prev,
+          profileImageUrl: data.profilePictureUrl,
+        }));
+        await refreshUser();
+
+        successToast(
+          "Profile photo updated.",
+          "You can change it whenever you want.",
         );
-        return;
+      } catch {
+        setPreviewAvatar(null);
+        URL.revokeObjectURL(objectUrl);
+        errorToast(
+          "The profile photo could not be updated.",
+          "Please try again sometimes later",
+        );
+      } finally {
+        setUploadingPhoto(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
       }
-
-      await refreshUser();
-
-      successToast(
-        "Profile photo updated.",
-        "You can change it whenever you want.",
-      );
-    } catch {
-      errorToast(
-        "The profile photo could not be updated.",
-        "Please try again sometimes later",
-      );
-    }
+    })();
   }
 
   //_____________________________________________________________________________________//
 
-  const [profile, setProfile] = useState(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -195,9 +225,10 @@ export default function ProfilePage({
   const { register, handleSubmit, reset } = useForm({
     defaultValues: {
       name: profile.name,
-      username: profile.username ?? "",
+      preferredName: profile.preferredName ?? "",
       phoneNumber: profile.phoneNumber ?? "",
       nationalId: profile.nationalId ?? "",
+      passportNumber: profile.passportNumber ?? "",
       dateOfBirth: profile.dateOfBirth ?? "",
       address: profile.address ?? "",
       city: profile.city ?? "",
@@ -215,9 +246,10 @@ export default function ProfilePage({
   function startEditing() {
     reset({
       name: profile.name,
-      username: profile.username ?? "",
+      preferredName: profile.preferredName ?? "",
       phoneNumber: profile.phoneNumber ?? "",
       nationalId: profile.nationalId ?? "",
+      passportNumber: profile.passportNumber ?? "",
       dateOfBirth: profile.dateOfBirth ?? "",
       address: profile.address ?? "",
       city: profile.city ?? "",
@@ -238,9 +270,10 @@ export default function ProfilePage({
     const updated: GuestProfile = {
       ...profile,
       name: values.name.trim(),
-      username: values.username.trim() || undefined,
+      preferredName: values.preferredName.trim() || undefined,
       phoneNumber: values.phoneNumber.trim() || undefined,
       nationalId: values.nationalId.trim() || undefined,
+      passportNumber: values.passportNumber.trim() || undefined,
       dateOfBirth: values.dateOfBirth || undefined,
       address: values.address.trim() || undefined,
       city: values.city.trim() || undefined,
@@ -328,7 +361,7 @@ export default function ProfilePage({
           </div>
         </header>
 
-        {/* {message && (
+        {message && (
           <div className="profile-alert profile-alert-info" role="status">
             <Check size={18} />
             <span>{message}</span>
@@ -340,19 +373,26 @@ export default function ProfilePage({
               <X size={16} />
             </button>
           </div>
-        )} */}
+        )}
 
         <section className="profile-hero profile-card">
           <div className="profile-avatar-wrap">
-            <div className="profile-avatar">
-              {user?.profilePictureUrl ? (
+            <div className="profile-avatar relative overflow-hidden">
+              {previewAvatar || profile.profileImageUrl || user?.profilePictureUrl ? (
                 <Image
-                  src={user.profilePictureUrl}
-                  alt={`${user.fullName}'s profile`}
-                  width={300} height={300}
+                  src={previewAvatar || profile.profileImageUrl || user?.profilePictureUrl || ""}
+                  alt={`${profile.name}'s profile`}
+                  width={300}
+                  height={300}
+                  unoptimized={Boolean(previewAvatar || (previewAvatar || profile.profileImageUrl || user?.profilePictureUrl)?.startsWith("blob:"))}
                 />
               ) : (
                 <UserRound size={68} strokeWidth={1.6} />
+              )}
+              {uploadingPhoto && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white text-xs font-semibold">
+                  Updating...
+                </div>
               )}
             </div>
 
@@ -362,6 +402,7 @@ export default function ProfilePage({
               onClick={() => fileInputRef.current?.click()}
               aria-label="Change profile photo"
               title="Change profile photo"
+              disabled={uploadingPhoto}
             >
               <Camera size={17} />
             </button>
@@ -483,8 +524,8 @@ export default function ProfilePage({
                         {...register("name", { required: "Name is required" })}
                       />
                     </Field>
-                    <Field label="Username" icon={<UserRound size={16} />}>
-                      <input {...register("username")} />
+                    <Field label="Preferred name" icon={<UserRound size={16} />}>
+                      <input {...register("preferredName")} placeholder="How you like to be addressed" />
                     </Field>
                     <Field label="Email address" icon={<Mail size={16} />}>
                       <div className="profile-input-with-status">
@@ -509,7 +550,10 @@ export default function ProfilePage({
                       />
                     </Field>
                     <Field label="National ID" icon={<CreditCard size={16} />}>
-                      <input {...register("nationalId")} autoComplete="off" />
+                      <input {...register("nationalId")} autoComplete="off" placeholder="National ID number" />
+                    </Field>
+                    <Field label="Passport number" icon={<Globe2 size={16} />}>
+                      <input {...register("passportNumber")} autoComplete="off" placeholder="Passport number" />
                     </Field>
                     <Field
                       label="Date of birth"
@@ -638,8 +682,8 @@ export default function ProfilePage({
                     icon={<UserRound />}
                   />
                   <InfoItem
-                    label="Username"
-                    value={profile.username}
+                    label="Preferred name"
+                    value={profile.preferredName}
                     icon={<UserRound />}
                   />
                   <InfoItem
@@ -658,6 +702,12 @@ export default function ProfilePage({
                     label="National ID"
                     value={profile.nationalId}
                     icon={<CreditCard />}
+                    privateValue
+                  />
+                  <InfoItem
+                    label="Passport number"
+                    value={profile.passportNumber}
+                    icon={<Globe2 />}
                     privateValue
                   />
                   <InfoItem
@@ -731,7 +781,9 @@ export default function ProfilePage({
                       <h3>Password</h3>
                     </div>
                     <p>
-                      Last changed: {formatDate(profile.lastPasswordChange)}
+                      {profile.hasPassword
+                        ? `Last changed: ${formatDate(profile.lastPasswordChange)}`
+                        : "No password set (signed in with social account)"}
                     </p>
                   </div>
                   <button
@@ -739,7 +791,7 @@ export default function ProfilePage({
                     className="profile-link-button"
                     onClick={() => setPasswordOpen(true)}
                   >
-                    Change
+                    {profile.hasPassword ? "Change" : "Set password"}
                   </button>
                 </div>
                 <div className="profile-security-item">
@@ -951,15 +1003,37 @@ export default function ProfilePage({
               />
               <ConnectedAccount
                 name="Google"
-                connected={profile.connectedAccounts.google}
+                provider="google"
+                connected={Boolean(profile.connectedAccounts?.google)}
+                onConnect={onAccountConnect}
+                onDisconnect={onAccountDisconnect}
               />
               <ConnectedAccount
                 name="Facebook"
-                connected={profile.connectedAccounts.facebook}
+                provider="facebook"
+                connected={Boolean(profile.connectedAccounts?.facebook)}
+                onConnect={onAccountConnect}
+                onDisconnect={onAccountDisconnect}
               />
               <ConnectedAccount
-                name="Apple"
-                connected={profile.connectedAccounts.apple}
+                name="GitHub"
+                provider="github"
+                connected={Boolean(
+                  profile.connectedAccounts?.github ??
+                    (profile.connectedAccounts as Record<string, unknown>)?.gitHub
+                )}
+                onConnect={onAccountConnect}
+                onDisconnect={onAccountDisconnect}
+              />
+              <ConnectedAccount
+                name="LinkedIn"
+                provider="linkedin"
+                connected={Boolean(
+                  profile.connectedAccounts?.linkedin ??
+                    (profile.connectedAccounts as Record<string, unknown>)?.linkedIn
+                )}
+                onConnect={onAccountConnect}
+                onDisconnect={onAccountDisconnect}
               />
             </section>
 
@@ -1006,11 +1080,16 @@ export default function ProfilePage({
 
       <PasswordModal
         open={passwordOpen}
+        hasPassword={profile.hasPassword ?? true}
         onClose={() => setPasswordOpen(false)}
         onSubmit={async (currentPassword, newPassword) => {
           await onPasswordChange?.(currentPassword, newPassword);
           setPasswordOpen(false);
-          setMessage("Password changed successfully.");
+          setProfile((current) => ({
+            ...current,
+            hasPassword: true,
+            lastPasswordChange: new Date().toISOString(),
+          }));
         }}
       />
 
@@ -1270,11 +1349,33 @@ function QuickAction({
 
 function ConnectedAccount({
   name,
+  provider,
   connected,
+  onConnect,
+  onDisconnect,
 }: {
   name: string;
+  provider: string;
   connected: boolean;
+  onConnect?: (provider: string) => void;
+  onDisconnect?: (provider: string) => Promise<void> | void;
 }) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleAction() {
+    if (connected) {
+      if (!confirm(`Are you sure you want to disconnect ${name}?`)) return;
+      try {
+        setLoading(true);
+        await onDisconnect?.(provider);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      onConnect?.(provider);
+    }
+  }
+
   return (
     <div className="profile-connected-account">
       <div className="profile-connected-logo">{name.slice(0, 1)}</div>
@@ -1282,15 +1383,18 @@ function ConnectedAccount({
         <strong>{name}</strong>
         <span>{connected ? "Connected" : "Not connected"}</span>
       </div>
-      <span
+      <button
+        type="button"
+        onClick={handleAction}
+        disabled={loading}
         className={
           connected
-            ? "profile-connected-status active"
-            : "profile-connected-status"
+            ? "profile-connected-status active hover:opacity-80 cursor-pointer bg-transparent border-0"
+            : "profile-connected-status hover:opacity-80 cursor-pointer bg-transparent border-0"
         }
       >
-        {connected ? "Active" : "Connect"}
-      </span>
+        {loading ? "..." : connected ? "Disconnect" : "Connect"}
+      </button>
     </div>
   );
 }
@@ -1367,18 +1471,23 @@ function Modal({
 
 function PasswordModal({
   open,
+  hasPassword = true,
   onClose,
   onSubmit,
 }: {
   open: boolean;
+  hasPassword?: boolean;
   onClose: () => void;
   onSubmit: (currentPassword: string, newPassword: string) => Promise<void>;
 }) {
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
   const {
     register,
     handleSubmit,
     reset,
-    watch,
     formState: { errors },
   } = useForm<{
     currentPassword: string;
@@ -1386,41 +1495,75 @@ function PasswordModal({
     confirmPassword: string;
   }>();
 
-  const newPassword = watch("newPassword");
-
   return (
-    <Modal open={open} title="Change password" onClose={onClose}>
+    <Modal
+      open={open}
+      title={hasPassword ? "Change password" : "Create password"}
+      onClose={onClose}
+    >
       <form
         className="profile-modal-form"
         onSubmit={handleSubmit(async (values) => {
-          await onSubmit(values.currentPassword, values.newPassword);
+          await onSubmit(hasPassword ? values.currentPassword : "", values.newPassword);
           reset();
         })}
       >
-        <Field label="Current password">
-          <input
-            {...register("currentPassword", {
-              required: "Current password is required",
-            })}
-            type="password"
-            autoComplete="current-password"
-          />
-        </Field>
-        {errors.currentPassword && (
-          <small className="profile-field-error">
-            {errors.currentPassword.message}
-          </small>
+        {!hasPassword && (
+          <p className="text-sm text-muted-foreground">
+            You signed in with a social account and do not have a password yet. Create a password below to enable direct email sign-in.
+          </p>
+        )}
+
+        {hasPassword && (
+          <>
+            <Field label="Current password">
+              <div className="relative flex items-center">
+                <input
+                  {...register("currentPassword", {
+                    required: hasPassword ? "Current password is required" : false,
+                  })}
+                  type={showCurrent ? "text" : "password"}
+                  autoComplete="current-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrent((v) => !v)}
+                  className="absolute right-0 top-0 bottom-0 px-3 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-0"
+                  aria-label={showCurrent ? "Hide password" : "Show password"}
+                >
+                  {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </Field>
+            {errors.currentPassword && (
+              <small className="profile-field-error">
+                {errors.currentPassword.message}
+              </small>
+            )}
+          </>
         )}
 
         <Field label="New password">
-          <input
-            {...register("newPassword", {
-              required: "New password is required",
-              minLength: { value: 8, message: "Use at least 8 characters." },
-            })}
-            type="password"
-            autoComplete="new-password"
-          />
+          <div className="relative flex items-center">
+            <input
+              {...register("newPassword", {
+                required: "New password is required",
+                minLength: { value: 6, message: "Use at least 6 characters." },
+              })}
+              type={showNew ? "text" : "password"}
+              autoComplete="new-password"
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowNew((v) => !v)}
+              className="absolute right-0 top-0 bottom-0 px-3 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-0"
+              aria-label={showNew ? "Hide password" : "Show password"}
+            >
+              {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </Field>
         {errors.newPassword && (
           <small className="profile-field-error">
@@ -1429,15 +1572,26 @@ function PasswordModal({
         )}
 
         <Field label="Confirm new password">
-          <input
-            {...register("confirmPassword", {
-              required: "Please confirm the new password.",
-              validate: (value) =>
-                value === newPassword || "Passwords do not match.",
-            })}
-            type="password"
-            autoComplete="new-password"
-          />
+          <div className="relative flex items-center">
+            <input
+              {...register("confirmPassword", {
+                required: "Please confirm the new password.",
+                validate: (value, formValues) =>
+                  value === formValues.newPassword || "Passwords do not match.",
+              })}
+              type={showConfirm ? "text" : "password"}
+              autoComplete="new-password"
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm((v) => !v)}
+              className="absolute right-0 top-0 bottom-0 px-3 flex items-center justify-center text-muted-foreground hover:text-foreground cursor-pointer bg-transparent border-0"
+              aria-label={showConfirm ? "Hide password" : "Show password"}
+            >
+              {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </Field>
         {errors.confirmPassword && (
           <small className="profile-field-error">
@@ -1457,7 +1611,7 @@ function PasswordModal({
             type="submit"
             className="profile-button profile-button-primary"
           >
-            <Save size={17} /> Update password
+            <Save size={17} /> {hasPassword ? "Update password" : "Create password"}
           </button>
         </div>
       </form>

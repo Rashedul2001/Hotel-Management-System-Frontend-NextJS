@@ -34,12 +34,13 @@ export interface NotificationPreferences {
 export interface GuestProfile {
   id: string;
   name: string;
-  username?: string;
+  preferredName?: string;
   email: string;
   emailVerified: boolean;
   phoneNumber?: string;
   phoneVerified: boolean;
   nationalId?: string;
+  passportNumber?: string;
   dateOfBirth?: string;
   address?: string;
   city?: string;
@@ -50,6 +51,7 @@ export interface GuestProfile {
   memberSince?: string;
 
   twoFactorEnabled: boolean;
+  hasPassword?: boolean;
   lastPasswordChange?: string;
   lastLoginAt?: string;
 
@@ -66,7 +68,8 @@ export interface GuestProfile {
   connectedAccounts: {
     google: boolean;
     facebook: boolean;
-    apple: boolean;
+    github?: boolean;
+    linkedin?: boolean;
   };
 
   bookings: GuestBooking[];
@@ -88,4 +91,6 @@ export interface ProfilePageProps {
   onNotificationPreferencesChange?: (
     preferences: NotificationPreferences,
   ) => Promise<void> | void;
+  onAccountConnect?: (provider: string) => void;
+  onAccountDisconnect?: (provider: string) => Promise<void> | void;
 }
