@@ -1,10 +1,30 @@
 import { Room } from "@/types/room";
+import { formatCurrency } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { FcTodoList } from "react-icons/fc";
 import { FiArrowRight, FiGrid, FiHeart, FiUsers } from "react-icons/fi";
 
-const RoomCard = ({ room, view }: { room: Room, view: "list" | "grid" }) => {
+type RoomCardProps = {
+    room: Room;
+    view: "list" | "grid";
+    checkInDate?: string;
+    checkOutDate?: string;
+    guests?: number;
+};
+
+const RoomCard = ({ room, view, checkInDate, checkOutDate, guests }: RoomCardProps) => {
+    const isBookable =
+        room.status !== "Maintenance" &&
+        room.status !== "Blocked";
+
+    const queryParams = new URLSearchParams();
+    if (checkInDate) queryParams.set("checkIn", checkInDate);
+    if (checkOutDate) queryParams.set("checkOut", checkOutDate);
+    if (guests) queryParams.set("guests", String(guests));
+    const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : "";
+
+    const checkoutUrl = `/checkout?room=${room.id}${checkInDate ? `&checkIn=${encodeURIComponent(checkInDate)}` : ""}${checkOutDate ? `&checkOut=${encodeURIComponent(checkOutDate)}` : ""}${guests ? `&guests=${encodeURIComponent(String(guests))}` : ""}`;
 
     return (
 
@@ -44,11 +64,15 @@ const RoomCard = ({ room, view }: { room: Room, view: "list" | "grid" }) => {
 
                 <div className="absolute inset-0 bg-linear-to-t from-black/45 via-transparent to-transparent" />
 
-                {room.isFeatured && (
+                {!isBookable ? (
+                    <div className="top-4 left-4 absolute bg-destructive/90 text-destructive-foreground backdrop-blur px-3 py-1.5 rounded-full font-semibold text-[10px] uppercase tracking-wider">
+                        {room.status === "Maintenance" ? "Maintenance" : "Unavailable"}
+                    </div>
+                ) : room.isFeatured ? (
                     <div className="top-4 left-4 absolute bg-background/90 backdrop-blur px-3 py-1.5 rounded-full font-semibold text-[10px] text-foreground uppercase tracking-wider">
                         Featured
                     </div>
-                )}
+                ) : null}
 
                 <button
                     type="button"
@@ -76,7 +100,7 @@ const RoomCard = ({ room, view }: { room: Room, view: "list" | "grid" }) => {
 
                     <div className="text-right shrink-0">
                         <p className="font-semibold text-xl">
-                            ${room.price}
+                            {formatCurrency(room.price)}
                         </p>
 
                         <p className="text-muted-foreground text-xs">
@@ -143,19 +167,29 @@ const RoomCard = ({ room, view }: { room: Room, view: "list" | "grid" }) => {
                 <div className="flex gap-3 mt-6">
 
                     <Link
-                        href={`/rooms/${room.id}`}
+                        href={`/rooms/${room.id}${queryStr}`}
                         className="flex flex-1 justify-center items-center px-4 py-3 border border-border hover:border-primary rounded-xl font-semibold hover:text-primary text-sm transition"
                     >
                         View Details
                     </Link>
 
-                    <Link
-                        href={`/rooms/${room.id}/book`}
-                        className="flex flex-1 justify-center items-center gap-2 bg-primary hover:bg-primary/90 px-4 py-3 rounded-xl font-semibold text-primary-foreground text-sm transition"
-                    >
-                        Book Now
-                        <FiArrowRight className="w-4 h-4" />
-                    </Link>
+                    {isBookable ? (
+                        <Link
+                            href={checkoutUrl}
+                            className="flex flex-1 justify-center items-center gap-2 bg-primary hover:bg-primary/90 px-4 py-3 rounded-xl font-semibold text-primary-foreground text-sm transition"
+                        >
+                            Book Now
+                            <FiArrowRight className="w-4 h-4" />
+                        </Link>
+                    ) : (
+                        <button
+                            type="button"
+                            disabled
+                            className="flex flex-1 justify-center items-center gap-2 bg-muted px-4 py-3 rounded-xl font-medium text-muted-foreground text-sm cursor-not-allowed opacity-60"
+                        >
+                            Unavailable
+                        </button>
+                    )}
 
                 </div>
             </div>

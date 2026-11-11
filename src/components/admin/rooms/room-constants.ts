@@ -26,11 +26,8 @@ export const BED_TYPES = [
 ] as const;
 
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
+  const rounded = Math.round(value || 0);
+  return `৳${rounded.toLocaleString("en-BD")}`;
 }
 
 export function formatDate(value: string | undefined): string {

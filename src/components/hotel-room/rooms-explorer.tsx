@@ -24,7 +24,12 @@ import {
     FiHeart,
 } from "react-icons/fi";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "../ui/select";
+import { DatePicker } from "../ui/date-picker";
+import { errorToast } from "@/components/ui/toast";
+import { formatDateToDDMMYYYY, parseDateString, validateStayDates } from "@/lib/date-utils";
+import { startOfDay, isBefore, isSameDay, addDays } from "date-fns";
 import { Room, RoomAmenity } from "@/types/room"
+import { formatCurrency } from "@/lib/utils";
 
 
 import { LuArrowDownWideNarrow, LuArrowUpNarrowWide } from "react-icons/lu";
@@ -93,22 +98,34 @@ const items: {
 
 const pageSizeOptions = [10, 25, 50, 100];
 
-const res = await apiFetch("/api/rooms/amenities", {
-    method: "GET",
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
-
-const amenitiesData: RoomAmenity[] = await res.json();
+const DEFAULT_AMENITIES: RoomAmenity[] = [
+    { id: 1, name: "Free WiFi" },
+    { id: 2, name: "Air Conditioning" },
+    { id: 3, name: "Flat-Screen TV" },
+    { id: 4, name: "Mini Bar" },
+    { id: 5, name: "Room Service" },
+    { id: 6, name: "Balcony" },
+    { id: 7, name: "Safe" },
+    { id: 8, name: "Gym Access" },
+    { id: 9, name: "Coffee Maker" },
+    { id: 10, name: "Ocean View" },
+];
 
 import { parseAsArrayOf, parseAsBoolean, parseAsFloat, parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { useDebouncedCallback } from 'use-debounce';
 import { apiFetch } from "@/lib/api";
 import RoomCard from "../ui/RoomCard";
 
-
-export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; totalRooms: number }) {
+export default function RoomsExplorer({
+    rooms,
+    totalRooms,
+    initialAmenities,
+}: {
+    rooms: Room[];
+    totalRooms: number;
+    initialAmenities?: RoomAmenity[];
+}) {
+    const amenitiesData = (initialAmenities && initialAmenities.length > 0) ? initialAmenities : DEFAULT_AMENITIES;
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [advancedOpen, setAdvancedOpen] = useState(false);
     const [view, setView] = useState<'grid' | 'list'>('grid');
@@ -121,8 +138,8 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
         checkInDate: parseAsString.withDefault(""),
         checkOutDate: parseAsString.withDefault(""),
         searchTerm: parseAsString.withDefault(""),
-        minPrice: parseAsFloat.withDefault(0),
-        maxPrice: parseAsFloat.withDefault(500),
+        minPrice: parseAsInteger.withDefault(0),
+        maxPrice: parseAsInteger.withDefault(50000),
         minCapacity: parseAsInteger.withDefault(1),
         category: parseAsString.withDefault("All"),
         amenityIds: parseAsArrayOf(parseAsInteger).withDefault([]),
@@ -165,7 +182,7 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
         debouncedSearch.cancel();
         debouncedPriceRange.cancel();
         setSearchInput("");
-        setPriceRange([0, 500]);
+        setPriceRange([0, 50000]);
         setParameters({
             pageNumber: null,
             pageSize: null,
@@ -277,59 +294,118 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                             </div>
 
                             {/* Check in */}
-                            <label className="relative">
-                                <FiCalendar className="top-1/2 left-4 absolute w-4 h-4 text-muted-foreground -translate-y-1/2" />
-
-                                <input
-                                    type="date"
-                                    value={parameters.checkInDate}
-                                    onChange={(event) => setParameters({ checkInDate: event.target.value })}
-
-                                    className="bg-muted/30 pr-3 pl-11 border border-border focus:border-primary rounded-xl outline-none w-full h-12 text-sm transition"
-                                    aria-label="Check in"
+                            <div className="relative">
+                                <DatePicker
+                                    date={parseDateString(parameters.checkInDate)}
+                                    onDateChange={(d) => {
+                                        if (d) {
+                                            const today = startOfDay(new Date());
+                                            if (isBefore(d, today)) {
+                                                errorToast("Invalid Date", "Check-in date cannot be in the past.");
+                                                return;
+                                            }
+                                            const currentOut = parseDateString(parameters.checkOutDate);
+                                            const nextOut = (!currentOut || isBefore(currentOut, d) || isSameDay(currentOut, d))
+                                                ? addDays(d, 1)
+                                                : currentOut;
+                                            setParameters({
+                                                checkInDate: formatDateToDDMMYYYY(d),
+                                                checkOutDate: formatDateToDDMMYYYY(nextOut),
+                                                pageNumber: 1,
+                                            });
+                                        } else {
+                                            setParameters({
+                                                checkInDate: null,
+                                                checkOutDate: null,
+                                                pageNumber: 1,
+                                            });
+                                        }
+                                    }}
+                                    minDate={new Date()}
+                                    placeholder="Check in"
+                                    buttonClassName="bg-muted/30 border-border focus:border-primary rounded-xl h-12 text-sm justify-between px-3"
                                 />
-                            </label>
+                            </div>
 
                             {/* Check out */}
-                            <label className="relative">
-                                <FiCalendar className="top-1/2 left-4 absolute w-4 h-4 text-muted-foreground -translate-y-1/2" />
-
-                                <input
-                                    type="date"
-                                    value={parameters.checkOutDate}
-                                    onChange={(event) => setParameters({ checkOutDate: event.target.value })}
-                                    className="bg-muted/30 pr-3 pl-11 border border-border focus:border-primary rounded-xl outline-none w-full h-12 text-sm transition"
-                                    aria-label="Check out"
+                            <div className="relative">
+                                <DatePicker
+                                    date={parseDateString(parameters.checkOutDate)}
+                                    onDateChange={(d) => {
+                                        if (d) {
+                                            const today = startOfDay(new Date());
+                                            if (isBefore(d, today)) {
+                                                errorToast("Invalid Date", "Check-out date cannot be in the past.");
+                                                return;
+                                            }
+                                            const currentIn = parseDateString(parameters.checkInDate) || today;
+                                            if (isBefore(d, currentIn) || isSameDay(d, currentIn)) {
+                                                errorToast("Invalid Date", "Check-out date must be after check-in date.");
+                                                return;
+                                            }
+                                            setParameters({
+                                                checkInDate: formatDateToDDMMYYYY(currentIn),
+                                                checkOutDate: formatDateToDDMMYYYY(d),
+                                                pageNumber: 1,
+                                            });
+                                        } else {
+                                            setParameters({ checkOutDate: null, pageNumber: 1 });
+                                        }
+                                    }}
+                                    minDate={
+                                        parseDateString(parameters.checkInDate)
+                                            ? addDays(parseDateString(parameters.checkInDate)!, 1)
+                                            : addDays(new Date(), 1)
+                                    }
+                                    placeholder="Check out"
+                                    buttonClassName="bg-muted/30 border-border focus:border-primary rounded-xl h-12 text-sm justify-between px-3"
                                 />
-                            </label>
+                            </div>
 
                             {/* Guests */}
-                            <label className="relative">
-                                <FiUsers className="top-1/2 left-4 absolute w-4 h-4 text-muted-foreground -translate-y-1/2" />
-
-                                <select
-                                    value={String(parameters.minCapacity)}
-                                    onChange={(event) => setParameters({ minCapacity: parseFloat(event.target.value) })}
-                                    className="bg-muted/30 pr-8 pl-11 border border-border focus:border-primary rounded-xl outline-none w-full h-12 text-sm transition appearance-none"
-                                    aria-label="Number of guests"
+                            <div className="relative">
+                                <Select
+                                    value={String(parameters.minCapacity || 1)}
+                                    onValueChange={(val) => {
+                                        setParameters({ minCapacity: parseInt(val || "1", 10), pageNumber: 1 });
+                                    }}
                                 >
-                                    <option value="1">1 Guest</option>
-                                    <option value="2">2 Guests</option>
-                                    <option value="3">3 Guests</option>
-                                    <option value="4">4 Guests</option>
-                                    <option value="5">5 Guests</option>
-                                </select>
-
-                                <FiChevronDown className="top-1/2 right-3 absolute w-4 h-4 text-muted-foreground -translate-y-1/2 pointer-events-none" />
-                            </label>
+                                    <SelectTrigger className="bg-muted/30 border-border focus:border-primary rounded-xl h-12! text-sm justify-between w-full px-3">
+                                        <div className="flex items-center gap-2">
+                                            <FiUsers className="w-4 h-4 text-muted-foreground shrink-0" />
+                                            <SelectValue placeholder="1 Guest" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                                            <SelectItem key={num} value={String(num)}>
+                                                {num} {num === 1 ? "Guest" : "Guests"}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
                             <button
                                 type="button"
                                 onClick={() => {
+                                    const inDate = parseDateString(parameters.checkInDate);
+                                    const outDate = parseDateString(parameters.checkOutDate);
+                                    const validation = validateStayDates(inDate, outDate);
+                                    if (!validation.isValid) {
+                                        errorToast("Validation Error", validation.error || "Please check your selected dates.");
+                                        return;
+                                    }
                                     debouncedSearch.flush();
                                     debouncedPriceRange.flush();
+                                    setParameters({
+                                        searchTerm: searchInput || null,
+                                        minPrice: priceRange[0],
+                                        maxPrice: priceRange[1],
+                                        pageNumber: 1,
+                                    });
                                 }}
-                                className="bg-primary hover:bg-primary/90 px-6 rounded-xl h-12 font-semibold text-primary-foreground text-sm transition"
+                                className="bg-primary hover:bg-primary/90 px-6 rounded-xl h-12 font-semibold text-primary-foreground text-sm transition cursor-pointer"
                             >
                                 Search
                             </button>
@@ -423,7 +499,7 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                 <Field className="pt-6 border-border border-t">
                                     <FieldTitle>Price per night</FieldTitle>
                                     <FieldDescription>
-                                        ${priceRange[0]} - ${priceRange[1]} per night
+                                        {formatCurrency(priceRange[0])} - {formatCurrency(priceRange[1])} per night
                                     </FieldDescription>
                                     <Slider
                                         value={priceRange}
@@ -437,8 +513,8 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                             debouncedPriceRange(nextRange);
                                         }}
                                         min={0}
-                                        max={1000}
-                                        step={10}
+                                        max={50000}
+                                        step={500}
                                         aria-label="Price range"
                                         className="mt-2"
                                     />
@@ -506,7 +582,7 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                     parameters.checkOutDate ||
                                     parameters.category !== "All" ||
                                     parameters.minPrice > 0 ||
-                                    parameters.maxPrice < 500 ||
+                                    parameters.maxPrice < 50000 ||
                                     parameters.minCapacity !== 1 ||
                                     parameters.amenityIds.length > 0) && (
                                         <Button
@@ -655,6 +731,9 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                                 key={room.id}
                                                 room={room}
                                                 view={view}
+                                                checkInDate={parameters.checkInDate || undefined}
+                                                checkOutDate={parameters.checkOutDate || undefined}
+                                                guests={parameters.minCapacity || 1}
                                             />
                                         ))}
                                     </div>
@@ -830,7 +909,7 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                         <Field className="mt-7">
                             <FieldTitle>Price per night</FieldTitle>
                             <FieldDescription>
-                                ${priceRange[0]} - ${priceRange[1]} per night
+                                {formatCurrency(priceRange[0])} - {formatCurrency(priceRange[1])} per night
                             </FieldDescription>
                             <Slider
                                 value={priceRange}
@@ -844,8 +923,8 @@ export default function RoomsExplorer({ rooms, totalRooms }: { rooms: Room[]; to
                                     debouncedPriceRange(nextRange);
                                 }}
                                 min={0}
-                                max={1000}
-                                step={10}
+                                max={50000}
+                                step={500}
                                 aria-label="Price range"
                                 className="mt-2"
                             />

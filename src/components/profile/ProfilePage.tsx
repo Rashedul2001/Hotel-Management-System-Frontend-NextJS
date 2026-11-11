@@ -42,6 +42,7 @@ import {
   X,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { formatDisplayDate } from "@/lib/date-utils";
 import "@/styles/profile.css";
 
 import type {
@@ -86,6 +87,8 @@ function getProfileCompletion(profile: GuestProfile) {
 
 function formatDate(value?: string) {
   if (!value) return EMPTY_VALUE;
+  const formatted = formatDisplayDate(value, "MMM d, yyyy");
+  if (formatted) return formatted;
   try {
     return format(parseISO(value), "MMM d, yyyy");
   } catch {

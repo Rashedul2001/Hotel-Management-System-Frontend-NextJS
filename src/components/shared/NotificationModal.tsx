@@ -40,7 +40,7 @@ const INITIAL_NOTIFICATIONS: NotificationItem[] = [
     {
         id: 'notif-2',
         title: 'Payment Received',
-        message: 'Invoice #INV-2026-892 paid successfully ($450.00) via Credit Card.',
+        message: 'Invoice #INV-2026-892 paid successfully (৳45,000) via SSLCommerz.',
         timestamp: '1h ago',
         type: 'payment',
         read: false,

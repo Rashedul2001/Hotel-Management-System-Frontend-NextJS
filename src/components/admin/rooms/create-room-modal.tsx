@@ -100,7 +100,7 @@ const defaultEmptyValues: RoomFormValues = {
   category: "Standard",
   floor: 1,
   status: "Available",
-  price: 100,
+  price: 5000,
   capacity: 2,
   bedCount: 1,
   bedType: "Queen",
@@ -585,24 +585,24 @@ export default function CreateRoomModal({
               >
                 <div className="relative">
                   <span className="top-1/2 left-3 absolute font-medium text-muted-foreground text-sm -translate-y-1/2 pointer-events-none">
-                    $
+                    ৳
                   </span>
                   <input
                     {...register("price", {
                       valueAsNumber: true,
                       required: "Price is required.",
                       min: {
-                        value: 0.01,
-                        message: "Price must be at least $0.01.",
+                        value: 100,
+                        message: "Price must be at least ৳1.",
                       },
                       max: {
-                        value: 1000000,
-                        message: "Price cannot exceed $1,000,000.",
+                        value: 50000,
+                        message: "Price cannot exceed ৳50,000.",
                       },
                     })}
                     type="number"
-                    min="0.01"
-                    step="0.01"
+                    min="1"
+                    step="1"
                     className="pl-6! input"
                     placeholder="150"
                   />
@@ -995,7 +995,7 @@ export default function CreateRoomModal({
                 />
                 <SummaryItem
                   label="Price"
-                  value={`$${(Number(watch("price")) || 0).toFixed(2)} / night`}
+                  value={`৳${Math.round(Number(watch("price")) || 100).toLocaleString("en-BD")} / night`}
                 />
                 <SummaryItem
                   label="Photos"

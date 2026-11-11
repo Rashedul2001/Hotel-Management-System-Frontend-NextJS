@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Bath,
@@ -12,9 +12,11 @@ import {
   ChevronRight,
   Clock3,
   Copy,
+  CreditCard,
   Download,
   ExternalLink,
   FileText,
+  Loader2,
   Mail,
   MapPin,
   Phone,
@@ -26,7 +28,12 @@ import {
   Wifi,
   XCircle,
 } from "lucide-react";
-import { toast } from "sonner";
+import { errorToast, infoToast, successToast } from "@/components/ui/toast";
+import { apiFetch } from "@/lib/api";
+import { formatDisplayDate, calculateNights } from "@/lib/date-utils";
+
+const DEFAULT_IMAGE =
+  "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1600&q=85";
 
 type Booking = {
   id: string;
@@ -53,32 +60,21 @@ type Booking = {
 };
 
 type BookingDetailsProps = {
-  booking: Booking;
+  booking?: Booking | null;
+  bookingId?: string;
 };
 
 function formatDate(dateString: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(new Date(`${dateString}T00:00:00`));
+  return formatDisplayDate(dateString);
 }
 
 function getNights(checkIn: string, checkOut: string) {
-  const start = new Date(`${checkIn}T00:00:00`);
-  const end = new Date(`${checkOut}T00:00:00`);
-
-  return Math.max(
-    1,
-    Math.round((end.getTime() - start.getTime()) / 86400000),
-  );
+  return calculateNights(checkIn, checkOut);
 }
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount);
+  const rounded = Math.round(amount || 0);
+  return `৳${rounded.toLocaleString("en-BD")}`;
 }
 
 function getStatusStyles(status: string) {
@@ -118,9 +114,134 @@ function getStatusStyles(status: string) {
 }
 
 export default function BookingDetails({
-  booking,
+  booking: initialBooking,
+  bookingId,
 }: BookingDetailsProps) {
+  const [currentBooking, setCurrentBooking] = useState<Booking | null>(initialBooking || null);
+  const [loading, setLoading] = useState(!initialBooking && Boolean(bookingId));
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialBooking) {
+      setCurrentBooking(initialBooking);
+      return;
+    }
+    const idToFetch = bookingId || (typeof window !== "undefined" ? window.location.pathname.split("/").filter(Boolean).pop() : undefined);
+    if (!currentBooking && idToFetch) {
+      let active = true;
+      (async () => {
+        try {
+          setLoading(true);
+          const res = await apiFetch(`/api/bookings/${idToFetch}`);
+          if (!res.ok) {
+            throw new Error("Could not find this booking.");
+          }
+          const data = await res.json();
+          if (active) {
+            setCurrentBooking({
+              id: data.id,
+              confirmationNumber: data.confirmationNumber,
+              roomName: data.roomName,
+              roomCategory: data.roomCategory,
+              roomImage: data.roomImage || DEFAULT_IMAGE,
+              checkIn: data.checkInDate,
+              checkOut: data.checkOutDate,
+              guests: data.guestsCount,
+              guestName: data.guestName,
+              guestEmail: data.guestEmail,
+              guestPhone: data.guestPhone,
+              bookingForSomeoneElse: data.isBookingForSomeoneElse,
+              total: data.totalPrice,
+              paymentStatus: data.paidAt ? "Paid" : "Pending",
+              paymentMethod: data.paymentMethod || "SSLCommerz",
+              status: data.status,
+              specialRequests: data.specialRequests || "",
+              roomSize: "45 sq m",
+              beds: "King Bed",
+              maxGuests: data.guestsCount,
+              amenities: [
+                "Free High-speed Wi-Fi",
+                "Air Conditioning",
+                "Ensuite Bathroom",
+                "Smart TV",
+                "Breakfast Service Available",
+              ],
+            });
+          }
+        } catch (err: any) {
+          if (active) setLoadError(err.message || "Failed to load booking.");
+        } finally {
+          if (active) setLoading(false);
+        }
+      })();
+      return () => { active = false; };
+    }
+  }, [initialBooking, bookingId, currentBooking]);
+
   const [copied, setCopied] = useState(false);
+  const [paying, setPaying] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <Loader2 className="size-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground text-sm">Loading your booking details...</p>
+      </div>
+    );
+  }
+
+  if (!currentBooking) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 text-center">
+        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4 text-muted-foreground">
+          <FileText className="size-8" />
+        </div>
+        <h2 className="text-2xl font-serif font-bold mb-2">Booking Not Found</h2>
+        <p className="text-muted-foreground text-sm max-w-md mb-6">
+          {loadError || "We could not find the details for this reservation. It may have expired or belongs to a different account."}
+        </p>
+        <div className="flex gap-4">
+          <Link
+            href="/bookings"
+            className="bg-primary text-primary-foreground font-medium px-5 py-2.5 rounded-xl text-sm hover:opacity-90 transition"
+          >
+            View My Bookings
+          </Link>
+          <Link
+            href="/rooms"
+            className="border border-border font-medium px-5 py-2.5 rounded-xl text-sm hover:bg-muted transition"
+          >
+            Explore Rooms
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const booking = currentBooking;
+
+  const handlePayNow = async () => {
+    try {
+      setPaying(true);
+      infoToast("SSLCommerz", "Connecting to payment portal...");
+      const res = await apiFetch(`/api/bookings/${booking.id}/pay`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to initialize payment.");
+      }
+      if (data.gatewayPageUrl) {
+        successToast("Redirecting", "Connecting to SSLCommerz payment gateway...");
+        window.location.href = data.gatewayPageUrl;
+      } else {
+        throw new Error("No payment URL received.");
+      }
+    } catch (err: any) {
+      errorToast("Payment Error", err.message || "Could not resume payment. Please try again.");
+      setPaying(false);
+    }
+  };
 
   const nights = getNights(booking.checkIn, booking.checkOut);
   const status = getStatusStyles(booking.status);
@@ -134,11 +255,11 @@ export default function BookingDetails({
       await navigator.clipboard.writeText(booking.confirmationNumber);
 
       setCopied(true);
-      toast.success("Confirmation number copied");
+      successToast("Copied", "Confirmation number copied to clipboard.");
 
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("Unable to copy confirmation number");
+      errorToast("Clipboard Error", "Unable to copy confirmation number.");
     }
   }
 
@@ -156,7 +277,7 @@ export default function BookingDetails({
       }
 
       await navigator.clipboard.writeText(window.location.href);
-      toast.success("Booking link copied");
+      successToast("Copied", "Booking link copied to clipboard.");
     } catch {
       // User cancelled native share.
     }
@@ -622,6 +743,26 @@ export default function BookingDetails({
               <h3 className="font-semibold">Manage booking</h3>
 
               <div className="mt-4 space-y-2">
+                {booking.status === "pending" && (
+                  <button
+                    type="button"
+                    disabled={paying}
+                    onClick={handlePayNow}
+                    className="flex w-full items-center justify-between rounded-2xl bg-amber-500 hover:bg-amber-600 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-95 disabled:opacity-50"
+                  >
+                    <span className="flex items-center gap-3">
+                      {paying ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <CreditCard className="size-4" />
+                      )}
+                      Complete Payment (Pay Now)
+                    </span>
+
+                    <ChevronRight className="size-4" />
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={downloadConfirmation}

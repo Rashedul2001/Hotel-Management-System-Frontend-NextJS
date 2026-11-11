@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
 import { FaPlus } from "react-icons/fa6";
-import { toast } from "sonner";
+import { errorToast, successToast } from "@/components/ui/toast";
 
 import {
   createRoom,
@@ -55,6 +55,7 @@ export default function RoomsPageClient() {
   // Currently Selected / Editing Room
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [summaryCounts, setSummaryCounts] = useState<RoomStatistics | null>(null);
 
   // Data Fetching
   const loadRooms = useCallback(async () => {
@@ -74,6 +75,9 @@ export default function RoomsPageClient() {
 
       setRooms(data.rooms);
       setTotalRooms(data.totalRooms);
+      if (data.summaryCounts) {
+        setSummaryCounts(data.summaryCounts);
+      }
       setError(null);
 
       const lastPage = Math.max(
@@ -86,7 +90,7 @@ export default function RoomsPageClient() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unable to load rooms.";
       setError(msg);
-      toast.error(msg);
+      errorToast("Load Error", msg);
     } finally {
       setLoading(false);
     }
@@ -106,6 +110,9 @@ export default function RoomsPageClient() {
 
   // Derived Statistics
   const statistics = useMemo<RoomStatistics>(() => {
+    if (summaryCounts) {
+      return summaryCounts;
+    }
     return {
       total: totalRooms,
       available: rooms.filter((r) => r.status === "Available").length,
@@ -114,7 +121,7 @@ export default function RoomsPageClient() {
       maintenance: rooms.filter((r) => r.status === "Maintenance").length,
       blocked: rooms.filter((r) => r.status === "Blocked").length,
     };
-  }, [rooms, totalRooms]);
+  }, [summaryCounts, rooms, totalRooms]);
 
   const totalPages = Math.max(1, Math.ceil(totalRooms / parameters.pageSize));
 
@@ -151,7 +158,6 @@ export default function RoomsPageClient() {
         category: values.category.trim(),
         floor: Math.floor(Number(values.floor)),
         status: values.status,
-        isAvailable: values.status === "Available",
         price: Number(values.price),
         capacity: Math.floor(Number(values.capacity)),
         bedCount: Math.floor(Number(values.bedCount)),
@@ -164,10 +170,10 @@ export default function RoomsPageClient() {
 
       if (editingRoom) {
         await updateRoom(editingRoom.id, roomPayload, values.images);
-        toast.success(`Room ${roomPayload.roomNumber} updated successfully.`);
+        successToast("Room Updated", `Room ${roomPayload.roomNumber} updated successfully.`);
       } else {
         await createRoom(roomPayload, values.images);
-        toast.success(`Room ${roomPayload.roomNumber} created successfully.`);
+        successToast("Room Created", `Room ${roomPayload.roomNumber} created successfully.`);
       }
 
       setIsFormOpen(false);
@@ -175,7 +181,7 @@ export default function RoomsPageClient() {
       await loadRooms();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unable to save room.";
-      toast.error(msg);
+      errorToast("Save Error", msg);
       throw err;
     } finally {
       setActionLoading(false);
@@ -192,10 +198,10 @@ export default function RoomsPageClient() {
       setIsDeleteOpen(false);
       setSelectedRoom(null);
       await loadRooms();
-      toast.success("Room deleted successfully.");
+      successToast("Room Deleted", "Room deleted successfully.");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unable to delete room.";
-      toast.error(msg);
+      errorToast("Delete Error", msg);
     } finally {
       setActionLoading(false);
     }
@@ -209,11 +215,12 @@ export default function RoomsPageClient() {
       setRooms((current) =>
         current.map((item) => (item.id === updated.id ? updated : item)),
       );
-      toast.success(`Room ${room.roomNumber} status updated to ${newStatus}.`);
+      void loadRooms();
+      successToast("Status Updated", `Room ${room.roomNumber} status updated to ${newStatus}.`);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Unable to update status.";
-      toast.error(msg);
+      errorToast("Status Error", msg);
     } finally {
       setActionLoading(false);
     }

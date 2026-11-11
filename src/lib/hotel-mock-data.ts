@@ -29,7 +29,7 @@ export const rooms: Room[] = [
     category: "Deluxe",
     description:
       "A calming retreat with natural textures, soft lighting, and views across the hotel gardens.",
-    price: 185,
+    price: 6500,
     rating: 4.9,
     size: "42 m²",
     guests: 2,
@@ -45,7 +45,7 @@ export const rooms: Room[] = [
     category: "Suite",
     description:
       "An expansive suite combining contemporary design, a separate living area, and panoramic city views.",
-    price: 320,
+    price: 12000,
     rating: 5,
     size: "68 m²",
     guests: 3,
@@ -60,7 +60,7 @@ export const rooms: Room[] = [
     category: "Premium Suite",
     description:
       "Our signature stay with generous space, refined furnishings, and an atmosphere made for slow mornings.",
-    price: 460,
+    price: 18000,
     rating: 5,
     size: "96 m²",
     guests: 4,

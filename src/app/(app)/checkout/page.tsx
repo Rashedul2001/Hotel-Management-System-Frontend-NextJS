@@ -11,8 +11,11 @@ type Props = {
   searchParams: Promise<{
     room?: string;
     checkIn?: string;
+    checkInDate?: string;
     checkOut?: string;
+    checkOutDate?: string;
     guests?: string;
+    error?: string;
   }>;
 };
 
@@ -22,9 +25,10 @@ export default async function Page({ searchParams }: Props) {
   return (
     <CheckoutPage
       roomId={params.room ?? ""}
-      checkIn={params.checkIn ?? ""}
-      checkOut={params.checkOut ?? ""}
+      checkIn={params.checkIn ?? params.checkInDate ?? ""}
+      checkOut={params.checkOut ?? params.checkOutDate ?? ""}
       guests={Number(params.guests ?? 1)}
+      initialError={params.error ?? ""}
     />
   );
 }

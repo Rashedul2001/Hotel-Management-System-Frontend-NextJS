@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import { rooms } from "@/lib/hotel-mock-data";
+import { formatCurrency } from "@/lib/utils";
 
 export function FeaturedRooms() {
   return (
@@ -75,7 +76,7 @@ export function FeaturedRooms() {
 
                   <div className="shrink-0 text-right">
                     <span className="text-2xl font-semibold">
-                      ${room.price}
+                      {formatCurrency(room.price)}
                     </span>
                     <span className="block text-xs text-muted-foreground">
                       per night

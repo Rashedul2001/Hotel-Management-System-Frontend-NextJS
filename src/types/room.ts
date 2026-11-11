@@ -24,7 +24,6 @@ export interface Room {
   category: string;
   floor: number;
   status: RoomStatus | string;
-  isAvailable: boolean;
   isFeatured?: boolean;
   price: number;
   capacity: number;
@@ -39,4 +38,22 @@ export interface Room {
   totalReviews: number;
   images: RoomImage[];
   amenities: RoomAmenity[];
+}
+
+export interface RoomSummaryCounts {
+  total: number;
+  available: number;
+  occupied: number;
+  cleaning: number;
+  maintenance: number;
+  blocked: number;
+}
+
+export interface RoomListResponse {
+  totalRooms: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  rooms: Room[];
+  summaryCounts?: RoomSummaryCounts;
 }

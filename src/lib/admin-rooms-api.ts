@@ -7,7 +7,6 @@ export type RoomPayload = {
   category: string;
   floor: number;
   status: RoomStatus;
-  isAvailable?: boolean;
   price: number;
   capacity: number;
   bedCount: number;
@@ -29,6 +28,14 @@ export type AdminRoomsQuery = {
 export type AdminRoomsResponse = {
   totalRooms: number;
   rooms: Room[];
+  summaryCounts?: {
+    total: number;
+    available: number;
+    occupied: number;
+    cleaning: number;
+    maintenance: number;
+    blocked: number;
+  };
 };
 
 export type RoomAmenityPayload = Pick<RoomAmenity, "id" | "name">;
@@ -121,12 +128,13 @@ function extractRooms(payload: unknown): AdminRoomsResponse {
   const record = payload as Record<string, unknown>;
   const rooms = record.rooms;
   const totalRooms = record.totalRooms;
+  const summaryCounts = record.summaryCounts as AdminRoomsResponse["summaryCounts"];
 
   if (!Array.isArray(rooms) || typeof totalRooms !== "number") {
     throw new Error("The rooms API returned an invalid response.");
   }
 
-  return { rooms: rooms as Room[], totalRooms };
+  return { rooms: rooms as Room[], totalRooms, summaryCounts };
 }
 
 function extractRoom(payload: unknown): Room {
@@ -237,13 +245,9 @@ function createRoomFormData(payload: RoomPayload, images: File[] = []): FormData
   formData.append("floor", String(Number.isFinite(floorVal) ? floorVal : 1));
 
   formData.append("status", payload.status || "Available");
-  formData.append(
-    "isAvailable",
-    String(payload.isAvailable ?? (payload.status === "Available")),
-  );
 
-  const priceVal = Number(payload.price);
-  formData.append("price", String(Number.isFinite(priceVal) && priceVal > 0 ? priceVal : 0.01));
+  const priceVal = Math.round(Number(payload.price));
+  formData.append("price", String(Number.isFinite(priceVal) && priceVal > 0 ? priceVal : 1000));
 
   const capacityVal = Math.floor(Number(payload.capacity));
   formData.append("capacity", String(Number.isFinite(capacityVal) && capacityVal >= 1 ? capacityVal : 1));
@@ -293,6 +297,7 @@ export async function getRooms(
   const searchParams = new URLSearchParams({
     pageNumber: String(query.pageNumber),
     pageSize: String(query.pageSize),
+    includeAll: "true",
   });
 
   if (query.searchTerm) searchParams.set("SearchTerm", query.searchTerm);
@@ -356,4 +361,10 @@ export async function updateRoomStatus(
   return extractRoom(
     await readResponse<unknown>(response, "Unable to update room status."),
   );
+}
+
+export async function fetchRoomSummaryCounts(): Promise<AdminRoomsResponse["summaryCounts"]> {
+  const response = await apiFetch("/api/rooms/summary-counts");
+  if (!response.ok) return undefined;
+  return response.json();
 }

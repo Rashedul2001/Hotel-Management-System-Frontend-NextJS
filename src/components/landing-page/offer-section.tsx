@@ -2,16 +2,14 @@
 
 import { motion } from "motion/react";
 import { ArrowRight, Copy, Tag } from "lucide-react";
-import { toast } from "sonner";
+import { successToast } from "@/components/ui/toast";
 
 import { offers } from "@/lib/hotel-mock-data";
 
 export function OffersSection() {
   const copyCode = async (code: string) => {
     await navigator.clipboard.writeText(code);
-    toast.success("Offer code copied", {
-      description: `${code} is ready to use.`,
-    });
+    successToast("Offer code copied", `${code} is ready to use.`);
   };
 
   return (

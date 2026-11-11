@@ -174,7 +174,7 @@ const CURATED_EXPERIENCES = [
         title: 'Private Riviera Yacht Charter',
         category: 'VIP Luxury',
         duration: '4 - 8 Hours',
-        price: '$2,800',
+        price: '৳28,000',
         priceSubtitle: 'per private charter (up to 8 guests)',
         image: 'https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?auto=format&fit=crop&q=80&w=800',
         description: 'Set sail aboard our private 70ft luxury yacht. Includes personal captain, gourmet champagne lunch, snorkeling gear, and sunset coastal cruise.',
@@ -185,7 +185,7 @@ const CURATED_EXPERIENCES = [
         title: 'Skyline Helipad City & Coastal Tour',
         category: 'Adventure',
         duration: '45 Minutes',
-        price: '$950',
+        price: '৳9,500',
         priceSubtitle: 'per couple',
         image: 'https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&q=80&w=800',
         description: 'Experience breathless aerial views of the metropolis and coastline with a VIP helicopter takeoff directly from Velora Roof Helipad.',
@@ -196,7 +196,7 @@ const CURATED_EXPERIENCES = [
         title: 'Exclusive Sommelier Cellar Reserve Tasting',
         category: 'Gastronomy',
         duration: '2.5 Hours',
-        price: '$380',
+        price: '৳3,800',
         priceSubtitle: 'per guest',
         image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&q=80&w=800',
         description: 'A private journey through Velora\'s underground vault featuring rare vintage Grand Crus paired with artisanal European cheeses and cured meats.',
@@ -207,7 +207,7 @@ const CURATED_EXPERIENCES = [
         title: 'Aura Total Harmony Wellness Day',
         category: 'Wellness',
         duration: '3.5 Hours',
-        price: '$520',
+        price: '৳5,200',
         priceSubtitle: 'per guest',
         image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&q=80&w=800',
         description: 'Rejuvenate body and spirit with a bespoke full-body hot stone massage, radiant hydration facial, hydro-soak, and organic herbal tea ceremony.',
@@ -246,13 +246,13 @@ const FAQ_ITEMS = [
         id: 4,
         category: 'reservations',
         question: 'Does Velora require a security deposit upon check-in?',
-        answer: 'Yes, a temporary authorization hold of $150 per night is placed on your credit card upon check-in to cover potential incidental charges. Any unused hold balance is released automatically upon check-out.'
+        answer: 'Yes, a temporary authorization hold of ৳15,000 per night is placed on your card upon check-in to cover potential incidental charges. Any unused hold balance is released automatically upon check-out.'
     },
     {
         id: 5,
         category: 'amenities',
         question: 'Is valet parking available on-site and what are the fees?',
-        answer: 'Overnight secure valet parking is available at $55 per vehicle per night with unlimited in/out privileges. Electric vehicle charging stations (including Tesla Superchargers) are complimentary for staying guests.'
+        answer: 'Overnight secure valet parking is available at ৳1,500 per vehicle per night with unlimited in/out privileges. Electric vehicle charging stations (including Tesla Superchargers) are complimentary for staying guests.'
     },
     {
         id: 6,
@@ -264,7 +264,7 @@ const FAQ_ITEMS = [
         id: 7,
         category: 'special',
         question: 'Are pets permitted at Velora Hotels & Suites?',
-        answer: 'We welcome dogs up to 25 lbs (11 kg) in designated pet-friendly suites. A one-time deep cleaning fee of $150 per stay applies, which includes plush dog beds, organic treats, and custom dining bowls.'
+        answer: 'We welcome dogs up to 25 lbs (11 kg) in designated pet-friendly suites. A one-time deep cleaning fee of ৳5,000 per stay applies, which includes plush dog beds, organic treats, and custom dining bowls.'
     },
     {
         id: 8,
@@ -940,7 +940,7 @@ export default function App() {
                                     <span className="text-slate-500 text-sm font-sans">03.</span> Incidental Guarantee & Payment Terms
                                 </h2>
                                 <p>
-                                    A valid credit card is required at check-in. Velora Hotels & Suites reserves the right to place a temporary security authorization hold of <strong>$150 USD per suite per night</strong> for potential incidental room charges (room service, spa, minibar). Unused funds are released upon departure.
+                                    A valid card is required at check-in. Velora Hotels & Suites reserves the right to place a temporary security authorization hold of <strong>৳15,000 BDT per suite per night</strong> for potential incidental room charges (room service, spa, minibar). Unused funds are released upon departure.
                                 </p>
                             </section>
 
@@ -949,7 +949,7 @@ export default function App() {
                                     <span className="text-slate-500 text-sm font-sans">04.</span> Guest Conduct & Property Damage
                                 </h2>
                                 <p>
-                                    Velora is a 100% non-smoking luxury establishment. Smoking or vaping in non-designated areas or guest suites carries a mandatory $500 deep cleaning fee. Any intentional damage caused to suite furnishings, artwork, or hotel property will be billed directly to the guest payment account on file.
+                                    Velora is a 100% non-smoking luxury establishment. Smoking or vaping in non-designated areas or guest suites carries a mandatory ৳20,000 deep cleaning fee. Any intentional damage caused to suite furnishings, artwork, or hotel property will be billed directly to the guest payment account on file.
                                 </p>
                             </section>
                         </div>
