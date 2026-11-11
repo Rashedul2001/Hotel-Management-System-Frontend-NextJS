@@ -26,11 +26,15 @@ import { RoomDetailsModal } from "@/components/admin/rooms/room-details-modal";
 import { RoomDeleteModal } from "@/components/admin/rooms/room-delete-modal";
 import { BED_TYPES } from "@/components/admin/rooms/room-constants";
 
-const PAGE_SIZE = 7;
-
 export default function RoomsPageClient() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [totalRooms, setTotalRooms] = useState(0);
+  const [pagination, setPagination] = useState({
+    pageNumber: 1,
+    pageSize: 10,
+    totalPages: 1,
+    totalRooms: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +43,7 @@ export default function RoomsPageClient() {
   const [parameters, setParameters] = useQueryStates(
     {
       pageNumber: parseAsInteger.withDefault(1),
-      pageSize: parseAsInteger.withDefault(PAGE_SIZE),
+      pageSize: parseAsInteger,
       SearchTerm: parseAsString.withDefault(""),
       Status: parseAsString.withDefault("All"),
       Category: parseAsString.withDefault("All"),
@@ -62,8 +66,8 @@ export default function RoomsPageClient() {
     try {
       setLoading(true);
       const data = await getRooms({
-        pageNumber: parameters.pageNumber,
-        pageSize: parameters.pageSize,
+        pageNumber: parameters.pageNumber ?? undefined,
+        pageSize: parameters.pageSize ?? undefined,
         searchTerm: parameters.SearchTerm.trim() || undefined,
         status:
           parameters.Status === "All"
@@ -75,17 +79,19 @@ export default function RoomsPageClient() {
 
       setRooms(data.rooms);
       setTotalRooms(data.totalRooms);
+      setPagination({
+        pageNumber: data.pageNumber,
+        pageSize: data.pageSize,
+        totalPages: data.totalPages,
+        totalRooms: data.totalRooms,
+      });
       if (data.summaryCounts) {
         setSummaryCounts(data.summaryCounts);
       }
       setError(null);
 
-      const lastPage = Math.max(
-        1,
-        Math.ceil(data.totalRooms / parameters.pageSize),
-      );
-      if (parameters.pageNumber > lastPage) {
-        await setParameters({ pageNumber: lastPage });
+      if (data.totalPages > 0 && parameters.pageNumber > data.totalPages) {
+        await setParameters({ pageNumber: data.totalPages });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unable to load rooms.";
@@ -122,8 +128,6 @@ export default function RoomsPageClient() {
       blocked: rooms.filter((r) => r.status === "Blocked").length,
     };
   }, [summaryCounts, rooms, totalRooms]);
-
-  const totalPages = Math.max(1, Math.ceil(totalRooms / parameters.pageSize));
 
   // Modal Triggers
   const handleOpenCreate = () => {
@@ -296,10 +300,11 @@ export default function RoomsPageClient() {
 
           {!loading && !error && rooms.length > 0 && (
             <RoomPagination
-              pageNumber={parameters.pageNumber}
-              pageSize={parameters.pageSize}
-              totalRooms={totalRooms}
-              totalPages={totalPages}
+              pageNumber={pagination.pageNumber}
+              pageSize={pagination.pageSize}
+              totalRooms={pagination.totalRooms}
+              totalPages={pagination.totalPages}
+              currentCount={rooms.length}
               onPageChange={(page) => void setParameters({ pageNumber: page })}
             />
           )}

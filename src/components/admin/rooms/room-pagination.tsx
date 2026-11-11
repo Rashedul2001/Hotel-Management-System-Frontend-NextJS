@@ -8,6 +8,7 @@ interface RoomPaginationProps {
   pageSize: number;
   totalRooms: number;
   totalPages: number;
+  currentCount?: number;
   onPageChange: (newPage: number) => void;
 }
 
@@ -16,19 +17,24 @@ export function RoomPagination({
   pageSize,
   totalRooms,
   totalPages,
+  currentCount,
   onPageChange,
 }: RoomPaginationProps) {
   if (totalRooms === 0) return null;
 
-  const start = (pageNumber - 1) * pageSize + 1;
-  const end = Math.min(pageNumber * pageSize, totalRooms);
+  const count =
+    typeof currentCount === "number"
+      ? currentCount
+      : Math.min(pageSize, Math.max(0, totalRooms - (pageNumber - 1) * pageSize));
+  const fromNumber = count > 0 && totalRooms > 0 ? (pageNumber - 1) * pageSize + 1 : 0;
+  const toNumber = count > 0 && totalRooms > 0 ? Math.min(fromNumber + count - 1, totalRooms) : 0;
 
   return (
     <div className="flex sm:flex-row flex-col sm:justify-between sm:items-center gap-3 px-4 md:px-6 py-4 bg-card border-border border-t rounded-b-2xl">
       <p className="text-muted-foreground text-xs">
-        Showing <span className="font-medium text-foreground">{start}</span> to{" "}
-        <span className="font-medium text-foreground">{end}</span> of{" "}
-        <span className="font-medium text-foreground">{totalRooms}</span>
+        Showing <span className="font-semibold text-foreground">{fromNumber}</span> to{" "}
+        <span className="font-semibold text-foreground">{toNumber}</span> of{" "}
+        <span className="font-semibold text-foreground">{totalRooms}</span> rooms
       </p>
 
       <div className="flex items-center gap-2">

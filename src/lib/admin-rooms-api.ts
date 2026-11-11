@@ -18,8 +18,8 @@ export type RoomPayload = {
 };
 
 export type AdminRoomsQuery = {
-  pageNumber: number;
-  pageSize: number;
+  pageNumber?: number;
+  pageSize?: number;
   searchTerm?: string;
   status?: RoomStatus;
   category?: string;
@@ -27,6 +27,9 @@ export type AdminRoomsQuery = {
 
 export type AdminRoomsResponse = {
   totalRooms: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
   rooms: Room[];
   summaryCounts?: {
     total: number;
@@ -127,14 +130,29 @@ function extractRooms(payload: unknown): AdminRoomsResponse {
 
   const record = payload as Record<string, unknown>;
   const rooms = record.rooms;
-  const totalRooms = record.totalRooms;
+  const totalRooms = typeof record.totalRooms === "number" ? record.totalRooms : 0;
+  const pageNumber = typeof record.pageNumber === "number" ? record.pageNumber : 1;
+  const pageSize = typeof record.pageSize === "number" ? record.pageSize : 10;
+  const totalPages =
+    typeof record.totalPages === "number"
+      ? record.totalPages
+      : totalRooms > 0
+        ? Math.ceil(totalRooms / pageSize)
+        : 1;
   const summaryCounts = record.summaryCounts as AdminRoomsResponse["summaryCounts"];
 
-  if (!Array.isArray(rooms) || typeof totalRooms !== "number") {
+  if (!Array.isArray(rooms)) {
     throw new Error("The rooms API returned an invalid response.");
   }
 
-  return { rooms: rooms as Room[], totalRooms, summaryCounts };
+  return {
+    rooms: rooms as Room[],
+    totalRooms,
+    pageNumber,
+    pageSize,
+    totalPages,
+    summaryCounts,
+  };
 }
 
 function extractRoom(payload: unknown): Room {
@@ -292,14 +310,18 @@ function createRoomFormData(payload: RoomPayload, images: File[] = []): FormData
 }
 
 export async function getRooms(
-  query: AdminRoomsQuery,
+  query: AdminRoomsQuery = {},
 ): Promise<AdminRoomsResponse> {
   const searchParams = new URLSearchParams({
-    pageNumber: String(query.pageNumber),
-    pageSize: String(query.pageSize),
     includeAll: "true",
   });
 
+  if (typeof query.pageNumber === "number" && query.pageNumber > 0) {
+    searchParams.set("pageNumber", String(query.pageNumber));
+  }
+  if (typeof query.pageSize === "number" && query.pageSize > 0) {
+    searchParams.set("pageSize", String(query.pageSize));
+  }
   if (query.searchTerm) searchParams.set("SearchTerm", query.searchTerm);
   if (query.status) searchParams.set("Status", query.status);
   if (query.category) searchParams.set("Category", query.category);
