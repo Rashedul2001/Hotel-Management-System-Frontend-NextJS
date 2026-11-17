@@ -1,0 +1,148 @@
+.
+├── AGENTS.md
+├── AI-Instructions
+│   └── Global AI Instruction.md
+├── CLAUDE.md
+├── components.json
+├── eslint.config.mjs
+├── next.config.ts
+├── Notes.md
+├── package.json
+├── package-lock.json
+├── postcss.config.mjs
+├── public
+│   ├── favicon.png
+│   └── TempPictures
+│       └── hero-1.jpeg
+├── README.md
+├── SampleProjectTree.txt
+├── src
+│   ├── app
+│   │   ├── (admin)
+│   │   │   ├── admin
+│   │   │   │   ├── dashboard
+│   │   │   │   │   └── page.tsx
+│   │   │   │   ├── rooms
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── [section]
+│   │   │   │       └── page.tsx
+│   │   │   └── layout.tsx
+│   │   ├── (app)
+│   │   │   ├── bookings
+│   │   │   │   ├── [bookingId]
+│   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── checkout
+│   │   │   │   └── page.tsx
+│   │   │   ├── contact
+│   │   │   │   └── page.tsx
+│   │   │   ├── gallery
+│   │   │   │   └── page.tsx
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── profile
+│   │   │   │   └── page.tsx
+│   │   │   └── rooms
+│   │   │       ├── [id]
+│   │   │       │   └── page.tsx
+│   │   │       └── page.tsx
+│   │   ├── error.tsx
+│   │   ├── layout.tsx
+│   │   └── not-found.tsx
+│   ├── components
+│   │   ├── admin
+│   │   │   └── rooms
+│   │   │       ├── create-room-modal.tsx
+│   │   │       ├── room-constants.ts
+│   │   │       ├── room-delete-modal.tsx
+│   │   │       ├── room-details-modal.tsx
+│   │   │       ├── room-filters.tsx
+│   │   │       ├── room-pagination.tsx
+│   │   │       ├── room-stats.tsx
+│   │   │       └── room-table.tsx
+│   │   ├── admin-page
+│   │   │   ├── admin-shell.tsx
+│   │   │   ├── arraivals.tsx
+│   │   │   ├── chartCard.tsx
+│   │   │   ├── rooms-widget.tsx
+│   │   │   └── sidebar.tsx
+│   │   ├── auth
+│   │   │   ├── auth-error-handler.tsx
+│   │   │   ├── login-modal.tsx
+│   │   │   ├── register-modal.tsx
+│   │   │   └── social-auth-buttons.tsx
+│   │   ├── hotel
+│   │   │   ├── booking-details.tsx
+│   │   │   └── my-bookings.tsx
+│   │   ├── hotel-room
+│   │   │   ├── checkout-page.tsx
+│   │   │   ├── room-details.tsx
+│   │   │   └── rooms-explorer.tsx
+│   │   ├── landing-page
+│   │   │   ├── experience-section.tsx
+│   │   │   ├── faq-section.tsx
+│   │   │   ├── featured-room.tsx
+│   │   │   ├── hero-section.tsx
+│   │   │   ├── hotel-cta.tsx
+│   │   │   ├── hotel-gallery.tsx
+│   │   │   ├── location-section.tsx
+│   │   │   ├── offer-section.tsx
+│   │   │   └── testimonial-section.tsx
+│   │   ├── profile
+│   │   │   └── ProfilePage.tsx
+│   │   ├── shared
+│   │   │   ├── footer.tsx
+│   │   │   ├── Navbar.tsx
+│   │   │   └── NotificationModal.tsx
+│   │   ├── temp
+│   │   │   └── admin-section.tsx
+│   │   └── ui
+│   │       ├── avatar.tsx
+│   │       ├── button.tsx
+│   │       ├── calendar.tsx
+│   │       ├── dashboard
+│   │       │   └── metric.tsx
+│   │       ├── date-picker.tsx
+│   │       ├── dialog.tsx
+│   │       ├── dropdown-menu.tsx
+│   │       ├── field.tsx
+│   │       ├── input.tsx
+│   │       ├── label.tsx
+│   │       ├── pagination.tsx
+│   │       ├── popover.tsx
+│   │       ├── RoomCard.tsx
+│   │       ├── select.tsx
+│   │       ├── separator.tsx
+│   │       ├── sheet.tsx
+│   │       ├── skeleton.tsx
+│   │       ├── slider.tsx
+│   │       └── toast.tsx
+│   ├── lib
+│   │   ├── admin-rooms-api.ts
+│   │   ├── api.ts
+│   │   ├── date-utils.ts
+│   │   ├── hotel-mock-data.ts
+│   │   ├── mock-api.ts
+│   │   ├── roles.ts
+│   │   └── utils.ts
+│   ├── providers
+│   │   ├── AuthContext.tsx
+│   │   ├── auth-modal-context.tsx
+│   │   ├── protected-content.tsx
+│   │   ├── role-guard.tsx
+│   │   └── theme-provider.tsx
+│   ├── styles
+│   │   ├── admin-global.css
+│   │   ├── admin-sidebar.css
+│   │   ├── globals.css
+│   │   ├── notfound.css
+│   │   └── profile.css
+│   └── types
+│       ├── auth-user.ts
+│       ├── profile.ts
+│       └── room.ts
+├── structure.txt
+├── Todo.md
+└── tsconfig.json
+
+37 directories, 109 files

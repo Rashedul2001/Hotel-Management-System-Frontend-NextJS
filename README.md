@@ -27,3 +27,12 @@
 5.merge and push 
 
 6.set a pull request
+
+
+## Creating Project structure on Ubuntu use the following Command
+
+``` 
+
+tree --gitignore -I '.git' > structure.txt
+
+```
