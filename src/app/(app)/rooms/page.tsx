@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import RoomsExplorer from "@/components/hotel-room/rooms-explorer";
+import RoomsExplorer from "@/components/hotel/rooms-explorer";
 import { apiFetch } from "@/lib/api";
 import GlobalError from "@/app/error";
 import { Room, RoomAmenity } from "@/types/room";

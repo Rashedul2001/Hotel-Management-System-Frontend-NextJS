@@ -39,6 +39,7 @@ import {
 
 import NotificationModal from "./NotificationModal";
 import { Skeleton } from "../ui/skeleton";
+import { Bed } from "lucide-react";
 
 /* -------------------------------------------------------------------------- */
 /* Navigation                                                                 */
@@ -279,12 +280,23 @@ export function Navbar() {
                         <FiUser className="w-4 h-4" />
                         My Profile
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        render={
+                          <Link
+                            href="/bookings"
+                            className="flex items-center gap-2 w-full cursor-pointer"
+                          />
+                        }
+                      >
+                        <FiCalendar className="w-4 h-4" />
+                        My Bookings
+                      </DropdownMenuItem>
 
                       {canAccessDashboard && (
                         <DropdownMenuItem
                           render={
                             <Link
-                              href="/admin/dashboard"
+                              href="/pms/dashboard"
                               className="flex items-center gap-2 w-full cursor-pointer"
                             />
                           }
@@ -301,7 +313,7 @@ export function Navbar() {
                           />
                         }
                       >
-                        <FiCalendar className="w-4 h-4" />
+                        <Bed className="w-4 h-4" />
                         Book a Room
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
@@ -455,7 +467,7 @@ export function Navbar() {
 
                   {canAccessDashboard && (
                     <Link
-                      href="/admin/dashboard"
+                      href="/pms/dashboard"
                       onClick={closeMobileMenu}
                       className="flex items-center gap-3 hover:bg-muted px-4 py-3 rounded-xl font-medium text-sm"
                     >

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import CheckoutPage from "@/components/hotel-room/checkout-page";
+import CheckoutPage from "@/components/hotel/checkout-page";
 
 export const metadata: Metadata = {
   title: "Checkout | Velora Hotels",

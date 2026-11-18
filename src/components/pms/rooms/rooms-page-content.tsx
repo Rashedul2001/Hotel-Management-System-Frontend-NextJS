@@ -15,18 +15,18 @@ import {
 } from "@/lib/admin-rooms-api";
 import type { Room, RoomStatus } from "@/types/room";
 
-import { RoomStats, type RoomStatistics } from "@/components/admin/rooms/room-stats";
-import { RoomFilters } from "@/components/admin/rooms/room-filters";
-import { RoomTable } from "@/components/admin/rooms/room-table";
-import { RoomPagination } from "@/components/admin/rooms/room-pagination";
+import { RoomStats, type RoomStatistics } from "@/components/pms/rooms/room-stats";
+import { RoomFilters } from "@/components/pms/rooms/room-filters";
+import { RoomTable } from "@/components/pms/rooms/room-table";
+import { RoomPagination } from "@/components/pms/rooms/room-pagination";
 import CreateRoomModal, {
   type RoomFormValues,
-} from "@/components/admin/rooms/create-room-modal";
-import { RoomDetailsModal } from "@/components/admin/rooms/room-details-modal";
-import { RoomDeleteModal } from "@/components/admin/rooms/room-delete-modal";
-import { BED_TYPES } from "@/components/admin/rooms/room-constants";
+} from "@/components/pms/rooms/create-room-modal";
+import { RoomDetailsModal } from "@/components/pms/rooms/room-details-modal";
+import { RoomDeleteModal } from "@/components/pms/rooms/room-delete-modal";
+import { BED_TYPES } from "@/components/pms/rooms/room-constants";
 
-export default function RoomsPageClient() {
+export function RoomsPageContent() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [totalRooms, setTotalRooms] = useState(0);
   const [pagination, setPagination] = useState({

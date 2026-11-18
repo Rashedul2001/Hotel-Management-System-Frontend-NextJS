@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import RoomDetails from "@/components/hotel-room/room-details";
+import RoomDetails from "@/components/hotel/room-details";
 import { apiFetch } from "@/lib/api";
 import type { Room } from "@/types/room";
 
