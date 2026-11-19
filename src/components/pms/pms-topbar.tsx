@@ -1,7 +1,7 @@
 "use client";
 
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -18,6 +18,12 @@ import {
   User,
   Home,
 } from "lucide-react";
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+  type NotificationItem,
+} from "@/lib/notifications-api";
 
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -49,6 +55,28 @@ export function PMSTopbar() {
     () => true,
     () => false
   );
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  const loadNotifications = async () => {
+    try {
+      const [list, count] = await Promise.all([
+        getNotifications("staff", "all"),
+        getUnreadNotificationCount("staff"),
+      ]);
+      setNotifications(list.slice(0, 6));
+      setUnreadCount(count);
+    } catch {
+      // fallback
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 20000);
+    return () => clearInterval(interval);
+  }, [pathname]);
 
   // Compute breadcrumbs from current route
   const getBreadcrumbs = () => {
@@ -165,7 +193,7 @@ export function PMSTopbar() {
 
       {/* Right: Actions, Theme & Profile */}
       <div className="flex items-center gap-2">
-        {/* Notifications Icon with Mock Badge */}
+        {/* Notifications Icon with Real Database Badge */}
         <DropdownMenu>
           <DropdownMenuTrigger
             className={cn(
@@ -175,53 +203,82 @@ export function PMSTopbar() {
             aria-label="View notifications"
           >
             <Bell className="size-4" />
-            <span className="absolute right-1 top-1 flex size-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
-              <span className="relative inline-flex size-2 rounded-full bg-destructive" />
-            </span>
+            {unreadCount > 0 && (
+              <span className="absolute right-1 top-1 flex size-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+                <span className="relative inline-flex size-2 rounded-full bg-destructive" />
+              </span>
+            )}
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80 p-2">
+          <DropdownMenuContent align="end" className="w-84 p-2 shadow-xl border border-border rounded-2xl">
             <div className="flex items-center justify-between px-2 py-1.5">
-              <span className="text-xs font-semibold text-foreground">
-                Notifications & Tasks
+              <span className="text-xs font-bold text-foreground">
+                Staff Notifications & Alerts
               </span>
-              <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                3 Pending
-              </span>
+              {unreadCount > 0 ? (
+                <span className="rounded-full bg-destructive/15 text-destructive px-2 py-0.5 text-[10px] font-bold">
+                  {unreadCount} Unread
+                </span>
+              ) : (
+                <span className="rounded-full bg-muted text-muted-foreground px-2 py-0.5 text-[10px] font-medium">
+                  All caught up
+                </span>
+              )}
             </div>
             <DropdownMenuSeparator />
-            <div className="space-y-1 py-1 text-xs">
-              <div className="rounded-lg p-2 hover:bg-accent transition-colors cursor-pointer">
-                <p className="font-medium text-foreground">
-                  New Reservation Pending
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Deluxe Room #204 - Sarah Jenkins
-                </p>
-              </div>
-              <div className="rounded-lg p-2 hover:bg-accent transition-colors cursor-pointer">
-                <p className="font-medium text-foreground">
-                  Maintenance Request #108
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  AC filter check requested in Suite 401
-                </p>
-              </div>
-              <div className="rounded-lg p-2 hover:bg-accent transition-colors cursor-pointer">
-                <p className="font-medium text-foreground">
-                  Daily Night Audit Ready
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  Reconciliation pending for closing shift
-                </p>
-              </div>
+            <div className="space-y-1 py-1 text-xs max-h-72 overflow-y-auto">
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-xs text-muted-foreground">
+                  No notifications recorded.
+                </div>
+              ) : (
+                notifications.map((item) => {
+                  const isItemRead = item.read || item.isRead;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={async () => {
+                        if (!isItemRead) {
+                          await markNotificationAsRead(item.intId || item.id);
+                          setUnreadCount((c) => Math.max(0, c - 1));
+                          setNotifications((prev) =>
+                            prev.map((n) =>
+                              n.id === item.id ? { ...n, read: true, isRead: true } : n
+                            )
+                          );
+                        }
+                        if (item.link) {
+                          router.push(item.link);
+                        }
+                      }}
+                      className={`rounded-xl p-2.5 transition-colors cursor-pointer ${
+                        !isItemRead
+                          ? "bg-primary/5 hover:bg-primary/10 border-l-2 border-primary"
+                          : "hover:bg-accent/50 opacity-80"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`font-bold text-xs truncate ${!isItemRead ? "text-foreground" : "text-muted-foreground"}`}>
+                          {item.title}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {item.timestamp}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5 leading-snug">
+                        {item.message}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => router.push("/pms/notifications")}
-              className="flex items-center justify-center rounded-lg py-1.5 text-center text-xs font-medium text-primary hover:bg-primary/5 cursor-pointer"
+              className="flex items-center justify-center rounded-xl py-2 text-center text-xs font-semibold text-primary hover:bg-primary/5 cursor-pointer"
             >
-              View all notifications
+              View all notifications &rarr;
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

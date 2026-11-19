@@ -2,9 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FiArrowLeft,
   FiArrowRight,
   FiChevronLeft,
   FiChevronRight,
@@ -12,25 +11,17 @@ import {
   FiMaximize2,
   FiMapPin,
 } from "react-icons/fi";
+import {
+  getGalleryImages,
+  getGalleryCategories,
+  type GalleryImageItem,
+} from "@/lib/gallery-api";
+import {
+  openGoogleMapsDirections,
+  HOTEL_OFFICIAL_ADDRESS,
+} from "@/lib/directions";
 
-type GalleryCategory =
-  | "All"
-  | "Rooms"
-  | "Dining"
-  | "Wellness"
-  | "Exterior"
-  | "Experiences";
-
-type GalleryImage = {
-  id: number;
-  title: string;
-  category: Exclude<GalleryCategory, "All">;
-  description: string;
-  src: string;
-  featured?: boolean;
-};
-
-const categories: GalleryCategory[] = [
+const DEFAULT_CATEGORIES: string[] = [
   "All",
   "Rooms",
   "Dining",
@@ -39,7 +30,7 @@ const categories: GalleryCategory[] = [
   "Experiences",
 ];
 
-const galleryImages: GalleryImage[] = [
+const INITIAL_GALLERY_IMAGES: GalleryImageItem[] = [
   {
     id: 1,
     title: "The Presidential Suite",
@@ -47,7 +38,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "A spacious retreat designed with refined details, natural textures, and panoramic views.",
     src: "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1800&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1611892440504-42a792e24d32?auto=format&fit=crop&w=1800&q=85",
     featured: true,
+    displayOrder: 1,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 2,
@@ -56,6 +50,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "An elegant arrival experience surrounded by warm lighting and contemporary architecture.",
     src: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 2,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 3,
@@ -64,6 +62,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "Thoughtfully designed accommodation for peaceful nights and relaxed mornings.",
     src: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 3,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 4,
@@ -72,6 +74,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "Seasonal cuisine and memorable evenings in an intimate dining setting.",
     src: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 4,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 5,
@@ -80,6 +86,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "A tranquil space to unwind while enjoying the atmosphere of Velora.",
     src: "https://images.unsplash.com/photo-1572331165267-854da2b10ccc?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1572331165267-854da2b10ccc?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 5,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 6,
@@ -88,6 +98,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "A sophisticated suite combining comfort, privacy, and modern luxury.",
     src: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 6,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 7,
@@ -96,6 +110,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "Golden-hour views and unforgettable moments above the city.",
     src: "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 7,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 8,
@@ -104,6 +122,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "Start the day with fresh ingredients, crafted dishes, and exceptional coffee.",
     src: "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 8,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 9,
@@ -112,6 +134,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "A calm sanctuary dedicated to relaxation and restoration.",
     src: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 9,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 10,
@@ -120,6 +146,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "Slow afternoons, refreshing water, and comfortable spaces made for unwinding.",
     src: "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 10,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 11,
@@ -128,6 +158,10 @@ const galleryImages: GalleryImage[] = [
     description:
       "Contemporary architecture meets timeless hospitality.",
     src: "https://images.unsplash.com/photo-1601918774946-25832a4be0d6?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1601918774946-25832a4be0d6?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 11,
+    createdAt: new Date().toISOString(),
   },
   {
     id: 12,
@@ -136,15 +170,51 @@ const galleryImages: GalleryImage[] = [
     description:
       "An inviting setting for conversations, cocktails, and relaxed evenings.",
     src: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=1400&q=85",
+    imageUrl: "https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?auto=format&fit=crop&w=1400&q=85",
+    featured: false,
+    displayOrder: 12,
+    createdAt: new Date().toISOString(),
   },
 ];
 
 export default function GalleryPage() {
-  const [activeCategory, setActiveCategory] =
-    useState<GalleryCategory>("All");
+  const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
+  const [galleryImages, setGalleryImages] = useState<GalleryImageItem[]>(INITIAL_GALLERY_IMAGES);
+  const [selectedImage, setSelectedImage] = useState<GalleryImageItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [selectedImage, setSelectedImage] =
-    useState<GalleryImage | null>(null);
+  // Fetch dynamic gallery pictures from backend
+  useEffect(() => {
+    let isMounted = true;
+    async function loadBackendData() {
+      try {
+        const [imagesData, categoriesData] = await Promise.all([
+          getGalleryImages(),
+          getGalleryCategories(),
+        ]);
+        if (isMounted) {
+          if (Array.isArray(imagesData) && imagesData.length > 0) {
+            setGalleryImages(imagesData);
+          }
+          if (Array.isArray(categoriesData) && categoriesData.length > 0) {
+            const catSet = new Set(["All", ...categoriesData]);
+            setCategories(Array.from(catSet));
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load gallery images from backend, using initial set:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+    loadBackendData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredImages = useMemo(() => {
     if (activeCategory === "All") {
@@ -152,48 +222,54 @@ export default function GalleryPage() {
     }
 
     return galleryImages.filter(
-      (image) => image.category === activeCategory
+      (image) => image.category.toLowerCase() === activeCategory.toLowerCase()
     );
-  }, [activeCategory]);
+  }, [galleryImages, activeCategory]);
 
   const selectedIndex = selectedImage
-    ? filteredImages.findIndex(
-      (image) => image.id === selectedImage.id
-    )
+    ? filteredImages.findIndex((image) => image.id === selectedImage.id)
     : -1;
 
-  const showPrevious = () => {
-    if (selectedIndex === -1) return;
+  const showPrevious = useCallback(() => {
+    if (selectedIndex === -1 || filteredImages.length === 0) return;
 
     const previousIndex =
-      selectedIndex === 0
-        ? filteredImages.length - 1
-        : selectedIndex - 1;
+      selectedIndex === 0 ? filteredImages.length - 1 : selectedIndex - 1;
 
     setSelectedImage(filteredImages[previousIndex]);
-  };
+  }, [selectedIndex, filteredImages]);
 
-  const showNext = () => {
-    if (selectedIndex === -1) return;
+  const showNext = useCallback(() => {
+    if (selectedIndex === -1 || filteredImages.length === 0) return;
 
     const nextIndex =
-      selectedIndex === filteredImages.length - 1
-        ? 0
-        : selectedIndex + 1;
+      selectedIndex === filteredImages.length - 1 ? 0 : selectedIndex + 1;
 
     setSelectedImage(filteredImages[nextIndex]);
-  };
+  }, [selectedIndex, filteredImages]);
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    if (!selectedImage) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedImage(null);
+      if (e.key === "ArrowLeft") showPrevious();
+      if (e.key === "ArrowRight") showNext();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedImage, showPrevious, showNext]);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
-
       {/* ================================================================ */}
       {/* Hero                                                             */}
       {/* ================================================================ */}
 
       <section className="relative overflow-hidden">
         <div className="relative min-h-[520px] sm:min-h-[580px]">
-
           <Image
             src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2200&q=90"
             alt="Velora Hotels exterior"
@@ -205,14 +281,11 @@ export default function GalleryPage() {
 
           {/* Overlay */}
           <div className="absolute inset-0 bg-black/45" />
-
           <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-black/20" />
 
           {/* Hero content */}
           <div className="relative z-10 mx-auto flex min-h-[520px] max-w-7xl items-end px-4 pb-16 sm:min-h-[580px] sm:px-6 sm:pb-20 lg:px-8">
-
             <div className="max-w-3xl text-white">
-
               <div className="mb-5 flex items-center gap-2 text-sm font-medium uppercase tracking-[0.2em] text-white/75">
                 <span className="h-px w-8 bg-white/60" />
                 Velora Hotels
@@ -230,7 +303,6 @@ export default function GalleryPage() {
                 thoughtful details that make every stay at Velora
                 memorable.
               </p>
-
             </div>
           </div>
         </div>
@@ -242,9 +314,7 @@ export default function GalleryPage() {
 
       <section className="hotel-section">
         <div className="hotel-container">
-
           <div className="grid gap-10 lg:grid-cols-[1fr_auto] lg:items-end">
-
             <div className="max-w-2xl">
               <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-primary">
                 Discover Velora
@@ -269,9 +339,7 @@ export default function GalleryPage() {
               Explore Rooms
               <FiArrowRight className="h-4 w-4" />
             </Link>
-
           </div>
-
         </div>
       </section>
 
@@ -281,11 +349,9 @@ export default function GalleryPage() {
 
       <section className="pb-8">
         <div className="hotel-container">
-
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-
             {categories.map((category) => {
-              const active = activeCategory === category;
+              const active = activeCategory.toLowerCase() === category.toLowerCase();
 
               return (
                 <button
@@ -305,9 +371,7 @@ export default function GalleryPage() {
                 </button>
               );
             })}
-
           </div>
-
         </div>
       </section>
 
@@ -317,20 +381,18 @@ export default function GalleryPage() {
 
       <section className="pb-24 sm:pb-32">
         <div className="hotel-container">
-
           <div className="grid auto-rows-[240px] grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-[280px]">
-
             {filteredImages.map((image, index) => {
-
               /*
-               * Create a visual rhythm by making selected images
+               * Create a visual rhythm by making featured images
                * larger on larger screens.
                */
-
               const featured =
                 image.featured ||
                 index === 0 ||
                 (index === 5 && filteredImages.length > 8);
+
+              const imgSrc = image.imageUrl || image.src;
 
               return (
                 <button
@@ -339,15 +401,11 @@ export default function GalleryPage() {
                   onClick={() => setSelectedImage(image)}
                   className={`
                     group relative overflow-hidden rounded-2xl text-left
-                    ${featured
-                      ? "sm:col-span-2 sm:row-span-2"
-                      : ""
-                    }
+                    ${featured ? "sm:col-span-2 sm:row-span-2" : ""}
                   `}
                 >
-
                   <Image
-                    src={image.src}
+                    src={imgSrc}
                     alt={image.title}
                     fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
@@ -368,7 +426,6 @@ export default function GalleryPage() {
 
                   {/* Content */}
                   <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-6">
-
                     <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/65">
                       {image.category}
                     </p>
@@ -376,37 +433,31 @@ export default function GalleryPage() {
                     <h3
                       className={`
                         hotel-display font-semibold
-                        ${featured
-                          ? "text-2xl sm:text-3xl"
-                          : "text-xl"
-                        }
+                        ${featured ? "text-2xl sm:text-3xl" : "text-xl"}
                       `}
                     >
                       {image.title}
                     </h3>
 
-                    {featured && (
-                      <p className="mt-2 max-w-lg text-sm leading-6 text-white/70">
+                    {featured && image.description && (
+                      <p className="mt-2 max-w-lg text-sm leading-6 text-white/70 line-clamp-2">
                         {image.description}
                       </p>
                     )}
-
                   </div>
                 </button>
               );
             })}
-
           </div>
 
           {/* Empty state */}
           {filteredImages.length === 0 && (
             <div className="rounded-2xl border border-dashed border-border py-20 text-center">
-              <p className="text-muted-foreground">
-                No images available for this category.
+              <p className="text-muted-foreground text-sm">
+                No pictures currently available for &ldquo;{activeCategory}&rdquo;.
               </p>
             </div>
           )}
-
         </div>
       </section>
 
@@ -416,11 +467,8 @@ export default function GalleryPage() {
 
       <section className="pb-24 sm:pb-32">
         <div className="hotel-container">
-
           <div className="relative overflow-hidden rounded-3xl bg-primary px-6 py-14 text-primary-foreground sm:px-10 sm:py-16 lg:px-16">
-
             <div className="relative z-10 max-w-2xl">
-
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary-foreground/60">
                 Experience Velora
               </p>
@@ -435,7 +483,6 @@ export default function GalleryPage() {
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-
                 <Link
                   href="/rooms"
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-background px-6 py-3.5 text-sm font-semibold text-foreground transition hover:bg-background/90"
@@ -450,16 +497,13 @@ export default function GalleryPage() {
                 >
                   Contact Velora
                 </Link>
-
               </div>
             </div>
 
-            {/* Decorative circle */}
+            {/* Decorative circles */}
             <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full border border-primary-foreground/10" />
             <div className="absolute -bottom-32 -right-12 h-80 w-80 rounded-full border border-primary-foreground/10" />
-
           </div>
-
         </div>
       </section>
 
@@ -469,11 +513,8 @@ export default function GalleryPage() {
 
       <section className="border-y border-border bg-muted/30">
         <div className="hotel-container py-8">
-
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
             <div className="flex items-center gap-3">
-
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <FiMapPin className="h-5 w-5" />
               </div>
@@ -484,27 +525,26 @@ export default function GalleryPage() {
                 </p>
 
                 <p className="text-xs text-muted-foreground">
-                  Your destination for refined stays
+                  {HOTEL_OFFICIAL_ADDRESS}
                 </p>
               </div>
-
             </div>
 
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+            <button
+              type="button"
+              onClick={() => openGoogleMapsDirections()}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline group"
+              title="Get Google Maps direction from current location"
             >
               Get directions
-              <FiArrowRight className="h-4 w-4" />
-            </Link>
-
+              <FiArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </button>
           </div>
-
         </div>
       </section>
 
       {/* ================================================================ */}
-      {/* Lightbox                                                          */}
+      {/* Lightbox Modal                                                    */}
       {/* ================================================================ */}
 
       {selectedImage && (
@@ -515,7 +555,6 @@ export default function GalleryPage() {
           aria-label={selectedImage.title}
           onClick={() => setSelectedImage(null)}
         >
-
           {/* Close */}
           <button
             type="button"
@@ -546,9 +585,8 @@ export default function GalleryPage() {
             className="relative h-[75vh] w-full max-w-6xl"
             onClick={(event) => event.stopPropagation()}
           >
-
             <Image
-              src={selectedImage.src}
+              src={selectedImage.imageUrl || selectedImage.src}
               alt={selectedImage.title}
               fill
               className="object-contain"
@@ -558,7 +596,6 @@ export default function GalleryPage() {
 
             {/* Caption */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-4 pb-5 pt-20 sm:px-8 sm:pb-8">
-
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/60">
                 {selectedImage.category}
               </p>
@@ -567,14 +604,15 @@ export default function GalleryPage() {
                 {selectedImage.title}
               </h3>
 
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
-                {selectedImage.description}
-              </p>
+              {selectedImage.description && (
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-white/65">
+                  {selectedImage.description}
+                </p>
+              )}
 
               <p className="mt-3 text-xs text-white/40">
                 {selectedIndex + 1} / {filteredImages.length}
               </p>
-
             </div>
           </div>
 
@@ -592,7 +630,6 @@ export default function GalleryPage() {
               <FiChevronRight className="h-6 w-6" />
             </button>
           )}
-
         </div>
       )}
     </main>

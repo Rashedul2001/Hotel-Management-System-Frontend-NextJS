@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import type { Room, RoomAmenity, RoomStatus } from "@/types/room";
+export type { Room, RoomAmenity, RoomStatus };
 
 export type RoomPayload = {
   roomNumber: number;

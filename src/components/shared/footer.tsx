@@ -105,15 +105,21 @@ export default function Footer() {
                         {/* Contact */}
                         <div className="mt-7 space-y-3">
 
-                            <div className="flex items-start gap-3 text-sm text-muted-foreground">
-                                <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                            <a
+                                href="https://www.google.com/maps/dir/?api=1&destination=Sobujbag,+savar+bus+stand,+savar,+dhaka,+bangladesh"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group/loc flex items-start gap-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                                title="Get Directions to Hotel Velora"
+                            >
+                                <FiMapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary group-hover/loc:scale-110 transition-transform" />
 
                                 <span>
-                                    Velora Hotels & Suites
+                                    Sobujbag, Savar Bus Stand,
                                     <br />
-                                    Your city, your destination
+                                    Savar, Dhaka, Bangladesh
                                 </span>
-                            </div>
+                            </a>
 
                             <a
                                 href="tel:+8801000000000"

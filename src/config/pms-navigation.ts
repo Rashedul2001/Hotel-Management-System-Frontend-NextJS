@@ -7,8 +7,10 @@ import {
   CalendarCheck,
   CalendarDays,
   CreditCard,
+  Images,
   KeyRound,
   LayoutDashboard,
+  Mail,
   Moon,
   ReceiptText,
   Settings,
@@ -79,7 +81,12 @@ export const PMS_NAVIGATION: NavGroup[] = [
             title: "My Notifications",
             href: "/pms/notifications",
             permission: "notifications.view",
-            badge: { label: 3, variant: "secondary" },
+          },
+          {
+            id: "task-inquiries",
+            title: "Guest Inquiries",
+            href: "/pms/contact-messages",
+            permission: "notifications.view",
           },
           {
             id: "task-assigned",
@@ -107,6 +114,14 @@ export const PMS_NAVIGATION: NavGroup[] = [
     id: "group-front-office",
     heading: "Front Office",
     items: [
+      {
+        id: "nav-inquiries",
+        title: "Guest Inquiries",
+        href: "/pms/contact-messages",
+        icon: Mail,
+        permission: "reservations.view",
+        department: "FrontDesk",
+      },
       {
         id: "nav-reservations",
         title: "Reservations",
@@ -333,6 +348,12 @@ export const PMS_NAVIGATION: NavGroup[] = [
             permission: "rooms.view",
           },
           {
+            id: "rm-gallery",
+            title: "Hotel Gallery",
+            href: "/pms/gallery",
+            permission: "rooms.view",
+          },
+          {
             id: "rm-images",
             title: "Room Images",
             href: "/pms/rooms/images",
@@ -484,6 +505,13 @@ export const PMS_NAVIGATION: NavGroup[] = [
     id: "group-operations",
     heading: "Hotel Operations",
     items: [
+      {
+        id: "nav-gallery",
+        title: "Hotel Gallery",
+        href: "/pms/gallery",
+        icon: Images,
+        permission: "rooms.view",
+      },
       {
         id: "nav-housekeeping",
         title: "Housekeeping",
@@ -1188,6 +1216,12 @@ export const PMS_NAVIGATION: NavGroup[] = [
             id: "cfg-hotel-info",
             title: "Hotel Information",
             href: "/pms/settings/hotel-info",
+            permission: "settings.view",
+          },
+          {
+            id: "cfg-gallery",
+            title: "Gallery Management",
+            href: "/pms/gallery",
             permission: "settings.view",
           },
           {

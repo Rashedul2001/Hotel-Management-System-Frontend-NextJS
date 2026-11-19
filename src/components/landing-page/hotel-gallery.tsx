@@ -1,8 +1,12 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import Link from "next/link";
+import { FiArrowRight } from "react-icons/fi";
+import { getGalleryImages } from "@/lib/gallery-api";
 
-const gallery = [
+const DEFAULT_GALLERY = [
   {
     image:
       "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=85",
@@ -31,6 +35,30 @@ const gallery = [
 ];
 
 export function HotelGallery() {
+  const [items, setItems] = useState<{ image: string; title: string }[]>(DEFAULT_GALLERY);
+
+  useEffect(() => {
+    let isMounted = true;
+    getGalleryImages()
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length >= 5) {
+          setItems(
+            data.slice(0, 5).map((img) => ({
+              image: img.imageUrl || img.src,
+              title: img.title,
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        // Keep defaults if error
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <section className="py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
@@ -45,16 +73,24 @@ export function HotelGallery() {
             </h2>
           </div>
 
-          <p className="max-w-md text-sm leading-6 text-muted-foreground">
-            Spaces designed to invite you to pause, reconnect, and enjoy the
-            moment.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <p className="max-w-md text-sm leading-6 text-muted-foreground">
+              Spaces designed to invite you to pause, reconnect, and enjoy the
+              moment.
+            </p>
+            <Link
+              href="/gallery"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline shrink-0"
+            >
+              View Full Gallery <FiArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
 
         <div className="mt-12 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {gallery.map((item, index) => (
+          {items.map((item, index) => (
             <motion.div
-              key={item.image}
+              key={item.image + index}
               initial={{ opacity: 0, scale: 0.96 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}

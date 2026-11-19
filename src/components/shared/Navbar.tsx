@@ -40,6 +40,7 @@ import {
 import NotificationModal from "./NotificationModal";
 import { Skeleton } from "../ui/skeleton";
 import { Bed } from "lucide-react";
+import { getUnreadNotificationCount } from "@/lib/notifications-api";
 
 /* -------------------------------------------------------------------------- */
 /* Navigation                                                                 */
@@ -77,11 +78,22 @@ export function Navbar() {
 
   const [notifOpen, setNotifOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState<number>(0);
 
   const { resolvedTheme, setTheme } = useTheme();
   const { openLogin } = useAuthModal();
   const { user, isAuthenticated, logout, isLoading, hasAnyRole } = useAuth();
   const canAccessDashboard = hasAnyRole([ROLES.ADMIN, ROLES.SUPER_ADMIN]);
+
+  useEffect(() => {
+    let isMounted = true;
+    getUnreadNotificationCount("guest").then((count) => {
+      if (isMounted) setUnreadNotifCount(count);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, notifOpen]);
 
   const toggleTheme = () => {
     setTheme(resolvedTheme === "dark" ? "light" : "dark");
@@ -222,7 +234,11 @@ export function Navbar() {
                   >
                     <FiBell className="w-4.5 h-4.5" />
 
-                    <span className="top-2 right-2.5 absolute bg-primary rounded-full ring-2 ring-background w-2 h-2" />
+                    {unreadNotifCount > 0 && (
+                      <span className="top-1 right-1 absolute flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white ring-2 ring-background">
+                        {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+                      </span>
+                    )}
                   </button>
                 )
               )}
@@ -317,9 +333,16 @@ export function Navbar() {
                         Book a Room
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
-                    <DropdownMenuItem onClick={() => setNotifOpen(true)} className={"cursor-pointer md:hidden"}>
-                      <FiBell className="w-4 h-4" />
-                      Notification
+                    <DropdownMenuItem onClick={() => setNotifOpen(true)} className={"cursor-pointer md:hidden flex items-center justify-between"}>
+                      <span className="flex items-center gap-2">
+                        <FiBell className="w-4 h-4" />
+                        Notifications
+                      </span>
+                      {unreadNotifCount > 0 && (
+                        <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                          {unreadNotifCount}
+                        </span>
+                      )}
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />

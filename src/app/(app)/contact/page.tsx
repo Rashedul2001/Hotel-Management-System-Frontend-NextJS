@@ -14,8 +14,12 @@ import {
     Building2,
     CalendarCheck2,
     HelpCircle,
+    Navigation,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { openGoogleMapsDirections, HOTEL_OFFICIAL_ADDRESS } from '@/lib/directions';
+import { submitContactMessage } from '@/lib/contact-api';
+import { successToast, errorToast } from '@/components/ui/toast';
 
 const INQUIRY_TYPES = [
     { id: 'general', label: 'General Inquiry', icon: HelpCircle },
@@ -27,20 +31,20 @@ const DIRECT_CONTACTS = [
     {
         title: 'Front Desk & Support',
         description: 'Available 24/7 for guest assistance and check-in inquiries.',
-        phone: '+1 (800) 555-0199',
-        email: 'frontdesk@grandhavenhotel.com',
+        phone: '+880 1700-000001',
+        email: 'frontdesk@velorahotels.com',
     },
     {
         title: 'Concierge Services',
         description: 'Airport transfers, local tours, and customized guest itineraries.',
-        phone: '+1 (800) 555-0198',
-        email: 'concierge@grandhavenhotel.com',
+        phone: '+880 1700-000002',
+        email: 'concierge@velorahotels.com',
     },
     {
         title: 'Events & Catering',
         description: 'Dedicated team for corporate conferences, weddings, and private galas.',
-        phone: '+1 (800) 555-0197',
-        email: 'events@grandhavenhotel.com',
+        phone: '+880 1700-000003',
+        email: 'events@velorahotels.com',
     },
 ];
 
@@ -56,15 +60,32 @@ export default function ContactPage() {
         message: '',
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
 
-        // Simulate API request processing
-        setTimeout(() => {
-            setIsSubmitting(false);
+        try {
+            await submitContactMessage({
+                fullName: formData.fullName,
+                email: formData.email,
+                phone: formData.phone || undefined,
+                subject: formData.subject,
+                message: formData.message,
+                inquiryType,
+            });
             setIsSubmitted(true);
-        }, 1200);
+            successToast(
+                "Inquiry Received",
+                "Thank you! Your message has been routed to our concierge and a confirmation email has been dispatched."
+            );
+        } catch (err: any) {
+            errorToast(
+                "Submission Error",
+                err.message || "Failed to submit inquiry. Please check your information and try again."
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleChange = (
@@ -251,17 +272,28 @@ export default function ContactPage() {
                 <div className="lg:col-span-5 space-y-6">
                     {/* Quick Location & Hours Block */}
                     <div className="bg-card border border-border rounded-2xl p-6 shadow-sm space-y-4">
-                        <h3 className="text-base font-bold text-foreground">
-                            Hotel Information
-                        </h3>
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-bold text-foreground">
+                                Hotel Information
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={() => openGoogleMapsDirections()}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+                                title="Open Google Maps Directions"
+                            >
+                                <Navigation className="h-3.5 w-3.5" />
+                                Get Directions
+                            </button>
+                        </div>
 
                         <div className="space-y-3 text-xs text-muted-foreground">
                             <div className="flex items-start gap-3">
                                 <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                                 <div>
-                                    <p className="font-semibold text-foreground">Grand Haven Resort & Spa</p>
-                                    <p>124 Coastal Boulevard, Oceanfront Bay</p>
-                                    <p>CA 90210, United States</p>
+                                    <p className="font-semibold text-foreground">Hotel Velora & Suites</p>
+                                    <p>Sobujbag, Savar Bus Stand</p>
+                                    <p>Savar, Dhaka, Bangladesh</p>
                                 </div>
                             </div>
 
@@ -274,6 +306,29 @@ export default function ContactPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Interactive Google Map Embed */}
+                        <div className="relative w-full h-44 rounded-xl overflow-hidden border border-border mt-3 shadow-inner">
+                            <iframe
+                                title="Hotel Velora Location Map"
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0 }}
+                                loading="lazy"
+                                allowFullScreen
+                                referrerPolicy="no-referrer-when-downgrade"
+                                src="https://maps.google.com/maps?q=Sobujbag,+savar+bus+stand,+savar,+dhaka,+bangladesh&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                            />
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => openGoogleMapsDirections()}
+                            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground hover:opacity-90 transition-opacity shadow-sm"
+                        >
+                            <Navigation className="h-4 w-4" />
+                            Directions from Your Location
+                        </button>
                     </div>
 
                     {/* Department Contact Directory */}

@@ -46,7 +46,7 @@ export default function SystemConfigurationPage() {
   const [hotelInfo, setHotelInfo] = useState<HotelInfoResponse>({
     hotelName: "Hotel Velora",
     tagline: "Luxury Sanctuary & Unrivaled Hospitality",
-    address: "124 Marine Drive, Cox's Bazar, Bangladesh",
+    address: "Sobujbag, Savar Bus Stand, Savar, Dhaka, Bangladesh",
     phone: "+880 1700-000000",
     email: "concierge@hotelvelora.com",
     checkInTime: "14:00",
@@ -217,6 +217,13 @@ export default function SystemConfigurationPage() {
             <Building className="size-3.5" />
             Hotel Information
           </button>
+          <a
+            href="/pms/gallery"
+            className="flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition"
+          >
+            <Sparkles className="size-3.5 text-primary" />
+            Gallery Manager
+          </a>
         </div>
       </div>
 
