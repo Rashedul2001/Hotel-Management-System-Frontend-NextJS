@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Search, CalendarDays, Users, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { errorToast } from "@/components/ui/toast";
 import { DatePicker } from "@/components/ui/date-picker";
+import { getHeroSetting } from "@/lib/settings-api";
 import {
   Select,
   SelectContent,
@@ -22,9 +23,29 @@ import { startOfDay, isBefore, isSameDay, addDays } from "date-fns";
 export function HeroSection() {
   const router = useRouter();
 
+  const [heroImageUrl, setHeroImageUrl] = useState<string>(
+    "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=2200&q=90"
+  );
   const [checkInDate, setCheckInDate] = useState<Date | undefined>();
   const [checkOutDate, setCheckOutDate] = useState<Date | undefined>();
   const [guests, setGuests] = useState("1");
+
+  useEffect(() => {
+    let isMounted = true;
+    getHeroSetting()
+      .then((data) => {
+        if (isMounted && data?.imageUrl) {
+          setHeroImageUrl(data.imageUrl);
+        }
+      })
+      .catch((err) => {
+        // Fallback to default gracefully if backend is offline or loading
+        console.warn("[HeroSection] Using default hero image:", err?.message);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleCheckInChange = (date: Date | undefined) => {
     if (date) {
@@ -94,10 +115,9 @@ export function HeroSection() {
   return (
     <section className="relative min-h-195 lg:min-h-212.5 overflow-hidden">
       <div
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0 bg-cover bg-center transition-all duration-700"
         style={{
-          backgroundImage:
-            "url('https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=2200&q=90')",
+          backgroundImage: `url('${heroImageUrl}')`,
         }}
       />
 

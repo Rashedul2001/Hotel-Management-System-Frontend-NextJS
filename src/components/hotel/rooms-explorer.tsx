@@ -2,6 +2,7 @@
 
 import {
     useEffect,
+    useMemo,
     useState,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -120,11 +121,20 @@ export default function RoomsExplorer({
     rooms,
     totalRooms,
     initialAmenities,
+    initialCategories,
 }: {
     rooms: Room[];
     totalRooms: number;
     initialAmenities?: RoomAmenity[];
+    initialCategories?: string[];
 }) {
+    const categoriesList: string[] = useMemo(() => {
+        const list = initialCategories && initialCategories.length > 0
+            ? initialCategories
+            : ["Standard", "Deluxe", "Suite", "Family", "Executive", "Penthouse"];
+        return ["All", ...list.filter((c) => c.toLowerCase() !== "all")];
+    }, [initialCategories]);
+
     const amenitiesData = (initialAmenities && initialAmenities.length > 0) ? initialAmenities : DEFAULT_AMENITIES;
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -460,7 +470,7 @@ export default function RoomsExplorer({
 
                                     <div className="space-y-1 mt-4">
 
-                                        {Categories.map(
+                                        {categoriesList.map(
                                             (roomCategory) => {
                                                 const active =
                                                     parameters.category === roomCategory;
@@ -876,7 +886,7 @@ export default function RoomsExplorer({
 
                             <div className="gap-2 grid grid-cols-2 mt-3">
 
-                                {Categories.map(
+                                {categoriesList.map(
                                     (roomCategory) => {
                                         const active =
                                             parameters.category === roomCategory;

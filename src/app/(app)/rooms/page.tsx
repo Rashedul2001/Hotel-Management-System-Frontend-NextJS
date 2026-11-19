@@ -35,6 +35,7 @@ export default async function RoomsPage({
   let rooms: Room[] = [];
   let totalRooms: number = 0;
   let amenities: RoomAmenity[] = [];
+  let categories: string[] = [];
 
   try {
     const queryParametersObject = await searchParams;
@@ -58,7 +59,7 @@ export default async function RoomsPage({
       }
     });
 
-    const [roomsRes, amenitiesRes] = await Promise.all([
+    const [roomsRes, amenitiesRes, categoriesRes] = await Promise.all([
       apiFetch(`/api/rooms?${queryParameters.toString()}`, {
         method: "GET",
         cache: "no-store",
@@ -73,10 +74,21 @@ export default async function RoomsPage({
           "Content-Type": "application/json",
         },
       }).catch(() => null),
+      apiFetch("/api/rooms/categories", {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }).catch(() => null),
     ]);
 
     if (amenitiesRes && amenitiesRes.ok) {
       amenities = (await amenitiesRes.json()) || [];
+    }
+
+    if (categoriesRes && categoriesRes.ok) {
+      categories = (await categoriesRes.json()) || [];
     }
 
     const data = await roomsRes.json();
@@ -116,5 +128,5 @@ export default async function RoomsPage({
     return <GlobalError />;
   }
 
-  return <RoomsExplorer rooms={rooms} totalRooms={totalRooms} initialAmenities={amenities} />;
+  return <RoomsExplorer rooms={rooms} totalRooms={totalRooms} initialAmenities={amenities} initialCategories={categories} />;
 }

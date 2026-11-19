@@ -4,12 +4,10 @@
  */
 export function isRouteActive(
   targetHref?: string,
-  currentPathname?: string | null
+  currentPathname?: string | null,
+  exactOnly: boolean = false
 ): boolean {
   if (!targetHref || !currentPathname) return false;
-
-  // Exact match
-  if (currentPathname === targetHref) return true;
 
   // Normalized path: convert /admin prefix to /pms for matching
   const normalizedCurrent = currentPathname.startsWith("/admin")
@@ -21,6 +19,8 @@ export function isRouteActive(
     : targetHref;
 
   if (normalizedCurrent === normalizedTarget) return true;
+
+  if (exactOnly) return false;
 
   // Don't prefix-match root dashboards
   if (

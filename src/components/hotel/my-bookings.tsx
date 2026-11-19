@@ -19,11 +19,14 @@ import {
     User,
     Users,
     XCircle,
+    Star,
+    MessageSquareQuote,
 } from "lucide-react";
 import { errorToast, infoToast, successToast } from "@/components/ui/toast";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { formatDisplayDate } from "@/lib/date-utils";
+import { createReview, getMyReviews } from "@/lib/settings-api";
 
 type BookingStatus =
     | "confirmed"
@@ -69,6 +72,8 @@ export default function MyBookings() {
     const [search, setSearch] = useState("");
     const [menuBooking, setMenuBooking] = useState<string | null>(null);
     const [cancelBooking, setCancelBooking] = useState<Booking | null>(null);
+    const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
+    const [myReviews, setMyReviews] = useState<any[]>([]);
     const [payingId, setPayingId] = useState<string | null>(null);
 
     const handleResumePayment = async (bookingId: string) => {
@@ -121,11 +126,26 @@ export default function MyBookings() {
                 }));
                 setBookings(mapped);
             }
+            try {
+                const revs = await getMyReviews();
+                setMyReviews(revs || []);
+            } catch {
+                // Ignore if reviews call fails
+            }
         } catch (err) {
             console.error("Failed to load user bookings:", err);
         } finally {
             setLoading(false);
         }
+    }, []);
+
+    const isPastBooking = useCallback((booking: Booking) => {
+        if (booking.status === "completed") return true;
+        if (booking.status === "confirmed") {
+            const checkOutTime = new Date(booking.checkOut).getTime();
+            return checkOutTime < Date.now();
+        }
+        return false;
     }, []);
 
     useEffect(() => {
@@ -148,36 +168,34 @@ export default function MyBookings() {
 
             if (activeTab === "upcoming") {
                 return (
-                    booking.status === "confirmed" ||
+                    (booking.status === "confirmed" && !isPastBooking(booking)) ||
                     booking.status === "pending"
                 );
             }
 
             if (activeTab === "past") {
-                return booking.status === "completed";
+                return isPastBooking(booking);
             }
 
             return booking.status === "cancelled";
         });
-    }, [bookings, activeTab, search]);
+    }, [bookings, activeTab, search, isPastBooking]);
 
     const counts = useMemo(() => {
         return {
             upcoming: bookings.filter(
                 (booking) =>
-                    booking.status === "confirmed" ||
+                    (booking.status === "confirmed" && !isPastBooking(booking)) ||
                     booking.status === "pending"
             ).length,
 
-            past: bookings.filter(
-                (booking) => booking.status === "completed"
-            ).length,
+            past: bookings.filter((booking) => isPastBooking(booking)).length,
 
             cancelled: bookings.filter(
                 (booking) => booking.status === "cancelled"
             ).length,
         };
-    }, [bookings]);
+    }, [bookings, isPastBooking]);
 
     const formatDate = (date: string) => {
         return formatDisplayDate(date);
@@ -477,7 +495,7 @@ export default function MyBookings() {
                                                         </button>
                                                     )}
 
-                                                    {booking.status === "confirmed" && (
+                                                    {booking.status === "confirmed" && !isPastBooking(booking) && (
                                                         <button
                                                             type="button"
                                                             onClick={() => setCancelBooking(booking)}
@@ -485,6 +503,30 @@ export default function MyBookings() {
                                                         >
                                                             Cancel
                                                         </button>
+                                                    )}
+
+                                                    {/* Review Functionality for Past / Checked-out Stays */}
+                                                    {isPastBooking(booking) && (
+                                                        (() => {
+                                                            const existingReview = myReviews.find(
+                                                                (r) => r.bookingId === booking.id || (r.roomId === booking.roomId && !r.bookingId)
+                                                            );
+                                                            return existingReview ? (
+                                                                <span className="inline-flex h-10 items-center gap-1 rounded-xl bg-amber-500/10 border border-amber-500/30 px-3 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                                                    <Star className="size-3.5 fill-amber-500 text-amber-500" />
+                                                                    Reviewed ({existingReview.rating}★)
+                                                                </span>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setReviewBooking(booking)}
+                                                                    className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 px-3.5 text-xs font-semibold text-primary transition shadow-xs cursor-pointer"
+                                                                >
+                                                                    <Star className="size-3.5 fill-amber-500 text-amber-500" />
+                                                                    Review Stay
+                                                                </button>
+                                                            );
+                                                        })()
                                                     )}
 
                                                     <Link
@@ -516,7 +558,185 @@ export default function MyBookings() {
                     }}
                 />
             )}
+
+            {/* Review Stay Modal for Past / Checked-out Stays */}
+            {reviewBooking && (
+                <ReviewStayModal
+                    booking={reviewBooking}
+                    onClose={() => setReviewBooking(null)}
+                    onSuccess={() => {
+                        setReviewBooking(null);
+                        loadBookings();
+                    }}
+                />
+            )}
         </main>
+    );
+}
+
+function ReviewStayModal({
+    booking,
+    onClose,
+    onSuccess,
+}: {
+    booking: Booking;
+    onClose: () => void;
+    onSuccess: () => void;
+}) {
+    const [rating, setRating] = useState(5);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [comment, setComment] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [error, setError] = useState("");
+
+    const ratingLabels: Record<number, string> = {
+        1: "1 - Disappointing",
+        2: "2 - Fair",
+        3: "3 - Good",
+        4: "4 - Very Good",
+        5: "5 - Exceptional!",
+    };
+
+    const activeStarValue = hoverRating || rating;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (comment.trim().length < 5) {
+            setError("Please write at least 5 characters sharing your experience.");
+            return;
+        }
+
+        try {
+            setSubmitting(true);
+            setError("");
+            await createReview({
+                roomId: booking.roomId,
+                bookingId: booking.id,
+                rating,
+                comment: comment.trim(),
+            });
+            successToast("Review Published", "Thank you for sharing your review with other guests!");
+            onSuccess();
+        } catch (err: any) {
+            setError(err.message || "Failed to submit review.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+            <div className="w-full max-w-lg rounded-3xl border border-border bg-card p-6 sm:p-8 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between border-b border-border pb-4">
+                    <div>
+                        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+                            <Star className="size-3.5 fill-amber-500 text-amber-500" />
+                            Guest Stay Feedback
+                        </div>
+                        <h3 className="text-xl font-bold mt-1 text-foreground">Review Your Stay</h3>
+                        <p className="text-xs text-muted-foreground">
+                            {booking.roomName} • Ref: {booking.confirmationNumber}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-full p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                        ✕
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {/* Star Rating Selector */}
+                    <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                            How would you rate your stay?
+                        </label>
+
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <button
+                                        key={star}
+                                        type="button"
+                                        onClick={() => setRating(star)}
+                                        onMouseEnter={() => setHoverRating(star)}
+                                        onMouseLeave={() => setHoverRating(0)}
+                                        className="p-1 text-2xl transition hover:scale-110 focus:outline-none"
+                                    >
+                                        <Star
+                                            className={`size-7 ${
+                                                star <= activeStarValue
+                                                    ? "fill-amber-400 text-amber-400"
+                                                    : "text-muted-foreground/30 fill-muted/20"
+                                            }`}
+                                        />
+                                    </button>
+                                ))}
+                            </div>
+
+                            <span className="text-xs font-bold text-foreground ml-2 px-2.5 py-1 rounded-lg bg-muted">
+                                {ratingLabels[activeStarValue] || ""}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Review Comment */}
+                    <div>
+                        <div className="flex justify-between items-center mb-1.5">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                Your Review & Comments *
+                            </label>
+                            <span className="text-[11px] text-muted-foreground">
+                                {comment.length}/2000
+                            </span>
+                        </div>
+                        <textarea
+                            required
+                            rows={4}
+                            maxLength={2000}
+                            placeholder="Tell future guests about the room comfort, amenities, hospitality, cleanliness, and view..."
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            className="w-full rounded-2xl border border-border bg-background p-3.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                        />
+                    </div>
+
+                    {error && (
+                        <p className="text-xs text-destructive bg-destructive/10 p-2.5 rounded-xl">
+                            {error}
+                        </p>
+                    )}
+
+                    <div className="flex justify-end gap-3 pt-3 border-t border-border">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={submitting}
+                            className="h-10 rounded-xl border border-border px-4 text-xs font-medium hover:bg-muted"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={submitting}
+                            className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-5 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-90 disabled:opacity-50"
+                        >
+                            {submitting ? (
+                                <>
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                    Publishing Review...
+                                </>
+                            ) : (
+                                "Submit Review"
+                            )}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     );
 }
 

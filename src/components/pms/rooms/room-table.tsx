@@ -14,6 +14,7 @@ import {
   FaTrash,
   FaRotate,
   FaPlus,
+  FaStar,
 } from "react-icons/fa6";
 import type { Room, RoomStatus } from "@/types/room";
 import {
@@ -36,6 +37,7 @@ interface RoomTableProps {
   onEdit: (room: Room) => void;
   onDelete: (room: Room) => void;
   onStatusChange: (room: Room, newStatus: RoomStatus) => void;
+  onToggleFeatured?: (room: Room) => void;
 }
 
 function statusIcon(status: string) {
@@ -73,6 +75,7 @@ export function RoomTable({
   onEdit,
   onDelete,
   onStatusChange,
+  onToggleFeatured,
 }: RoomTableProps) {
   const [openStatusMenuId, setOpenStatusMenuId] = useState<string | null>(null);
 
@@ -171,6 +174,7 @@ export function RoomTable({
               <th className="px-6 py-4 font-semibold">Floor</th>
               <th className="px-6 py-4 font-semibold">Capacity & Beds</th>
               <th className="px-6 py-4 font-semibold">Price</th>
+              <th className="px-4 py-4 font-semibold text-center">Featured</th>
               <th className="px-6 py-4 font-semibold">Status</th>
               <th className="px-6 py-4 font-semibold text-right">Actions</th>
             </tr>
@@ -242,6 +246,23 @@ export function RoomTable({
                       {formatCurrency(room.price)}
                     </p>
                     <p className="text-muted-foreground text-xs">per night</p>
+                  </td>
+
+                  {/* Featured Toggle */}
+                  <td className="px-4 py-4 text-center">
+                    <button
+                      type="button"
+                      disabled={actionLoading}
+                      onClick={() => onToggleFeatured?.(room)}
+                      title={room.isFeatured ? "Featured on Landing Page (Click to unfeature)" : "Click to feature on landing page"}
+                      className={`inline-flex items-center justify-center p-2 rounded-lg transition ${
+                        room.isFeatured
+                          ? "text-amber-500 hover:bg-amber-500/10"
+                          : "text-muted-foreground/30 hover:text-amber-500 hover:bg-muted"
+                      }`}
+                    >
+                      <FaStar className={`w-4 h-4 ${room.isFeatured ? "fill-amber-500" : ""}`} />
+                    </button>
                   </td>
 
                   {/* Status Dropdown */}
@@ -396,6 +417,16 @@ export function RoomTable({
                 >
                   <FaPen />
                   Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onToggleFeatured?.(room)}
+                  title={room.isFeatured ? "Featured" : "Not Featured"}
+                  className={`flex items-center justify-center border border-border rounded-xl w-10 h-9 transition ${
+                    room.isFeatured ? "text-amber-500 bg-amber-500/10 border-amber-500/30" : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  <FaStar className={`w-3.5 h-3.5 ${room.isFeatured ? "fill-amber-500" : ""}`} />
                 </button>
                 <button
                   type="button"

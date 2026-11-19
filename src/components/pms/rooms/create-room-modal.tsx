@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createRoomAmenity, getRoomAmenities } from "@/lib/admin-rooms-api";
+import { apiFetch } from "@/lib/api";
 import type { RoomAmenity, RoomStatus } from "@/types/room";
 import { BED_TYPES, ROOM_CATEGORIES } from "./room-constants";
 
@@ -45,6 +46,7 @@ export type RoomFormValues = {
   category: string;
   floor: number;
   status: RoomStatus;
+  isFeatured?: boolean;
   price: number;
   capacity: number;
   bedCount: number;
@@ -64,6 +66,7 @@ export type RoomInitialData = {
   category?: string;
   floor?: number;
   status?: RoomStatus;
+  isFeatured?: boolean;
   price?: number;
   capacity?: number;
   bedCount?: number;
@@ -100,6 +103,7 @@ const defaultEmptyValues: RoomFormValues = {
   category: "Standard",
   floor: 1,
   status: "Available",
+  isFeatured: false,
   price: 5000,
   capacity: 2,
   bedCount: 1,
@@ -134,6 +138,7 @@ export default function CreateRoomModal({
   const [imageError, setImageError] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [availableAmenities, setAvailableAmenities] = useState<RoomAmenity[]>([]);
+  const [dynamicCategories, setDynamicCategories] = useState<string[]>([...ROOM_CATEGORIES]);
   const [isAddingAmenity, setIsAddingAmenity] = useState(false);
 
   const computedDefaults = useMemo<RoomFormValues>(() => {
@@ -148,6 +153,7 @@ export default function CreateRoomModal({
       category: initialData.category ?? "Standard",
       floor: initialData.floor ?? 1,
       status: initialData.status ?? "Available",
+      isFeatured: initialData.isFeatured ?? false,
       price: initialData.price ?? 100,
       capacity: initialData.capacity ?? 2,
       bedCount: initialData.bedCount ?? 1,
@@ -195,7 +201,7 @@ export default function CreateRoomModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, computedDefaults]);
 
-  // Load backend amenities
+  // Load backend amenities & categories
   useEffect(() => {
     if (!open) return;
 
@@ -206,6 +212,15 @@ export default function CreateRoomModal({
           err instanceof Error ? err.message : "Unable to load room amenities.",
         );
       });
+
+    apiFetch("/api/rooms/categories")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setDynamicCategories(data);
+        }
+      })
+      .catch(() => {});
   }, [open]);
 
   // Clean up object URLs
@@ -523,7 +538,7 @@ export default function CreateRoomModal({
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {ROOM_CATEGORIES.map((cat) => (
+                        {dynamicCategories.map((cat) => (
                           <SelectItem key={cat} value={cat}>
                             {cat}
                           </SelectItem>
@@ -576,6 +591,22 @@ export default function CreateRoomModal({
                   )}
                 />
               </Field>
+
+              {/* Featured on Landing Page */}
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 p-3 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  id="isFeatured"
+                  {...register("isFeatured")}
+                  className="size-4 rounded accent-primary cursor-pointer"
+                />
+                <label htmlFor="isFeatured" className="text-xs text-foreground font-medium cursor-pointer">
+                  Feature this room on the guest landing page
+                  <span className="block text-[11px] text-muted-foreground font-normal">
+                    Featured rooms appear prominently on the home page showcase with ratings and direct links.
+                  </span>
+                </label>
+              </div>
 
               {/* Price / Night */}
               <Field

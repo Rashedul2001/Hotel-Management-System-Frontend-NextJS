@@ -19,12 +19,14 @@ import {
   ShieldCheck,
   User,
   Users,
+  Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { errorToast, infoToast, successToast } from "@/components/ui/toast";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import type { Room } from "@/types/room";
+import { getOfferById, getActiveOffers, type OfferItem } from "@/lib/settings-api";
 import { useAuth } from "@/providers/AuthContext";
 import { useAuthModal } from "@/providers/auth-modal-context";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -48,6 +50,7 @@ type Props = {
   checkOut: string;
   guests: number;
   initialError?: string;
+  offerId?: string;
 };
 
 const DEFAULT_ROOM_IMAGE =
@@ -59,12 +62,14 @@ export default function CheckoutPage({
   checkOut: initialCheckOut,
   guests: initialGuests,
   initialError = "",
+  offerId,
 }: Props) {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { openLogin } = useAuthModal();
 
   const [room, setRoom] = useState<Room | null>(null);
+  const [appliedOffer, setAppliedOffer] = useState<OfferItem | null>(null);
   const [loadingRoom, setLoadingRoom] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -234,6 +239,53 @@ export default function CheckoutPage({
     }
   };
 
+  useEffect(() => {
+    if (!room) return;
+    const targetRoomId = room.id;
+    const targetCategory = (room.category || "").toLowerCase();
+    let isMounted = true;
+
+    async function verifyOffer() {
+      if (offerId) {
+        try {
+          const offer = await getOfferById(Number(offerId));
+          const applies =
+            offer.isActive &&
+            ((offer.roomId && offer.roomId === targetRoomId) ||
+              (offer.category &&
+                offer.category.toLowerCase() === targetCategory));
+          if (applies && isMounted) {
+            setAppliedOffer(offer);
+            return;
+          }
+        } catch {
+          // Fallback to active offers
+        }
+      }
+
+      getActiveOffers()
+        .then((offers) => {
+          if (!isMounted) return;
+          const matching = offers.find(
+            (o) =>
+              o.isActive &&
+              ((o.roomId && o.roomId === targetRoomId) ||
+                (o.category &&
+                  o.category.toLowerCase() === targetCategory))
+          );
+          if (matching) {
+            setAppliedOffer(matching);
+          }
+        })
+        .catch(() => {});
+    }
+
+    verifyOffer();
+    return () => {
+      isMounted = false;
+    };
+  }, [room, offerId]);
+
   const nights = useMemo(() => {
     if (!checkInDate || !checkOutDate) return 1;
     const diff = checkOutDate.getTime() - checkInDate.getTime();
@@ -241,11 +293,13 @@ export default function CheckoutPage({
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   }, [checkInDate, checkOutDate]);
 
-  // Whole number BDT price calculations
+  // Whole number BDT price calculations with dynamic offer deduction
   const pricePerNight = Math.round(room?.price || 100);
   const roomSubtotal = pricePerNight * nights;
-  const taxes = 0; // Inclusive of all taxes or whole number
-  const total = roomSubtotal + taxes;
+  const discountPercentage = appliedOffer?.discountPercentage ?? 0;
+  const discountAmount = Math.round((roomSubtotal * discountPercentage) / 100);
+  const taxes = 0;
+  const total = Math.max(0, roomSubtotal - discountAmount + taxes);
 
   const formatDate = (date: Date | undefined) => {
     if (!date) return "Select date";
@@ -316,6 +370,7 @@ export default function CheckoutPage({
         checkInDate: formatDateToDDMMYYYY(checkInDate),
         checkOutDate: formatDateToDDMMYYYY(checkOutDate),
         guestsCount: guests,
+        offerId: appliedOffer ? appliedOffer.id : undefined,
         bookingForSomeoneElse,
         guestFirstName: guest.firstName.trim(),
         guestLastName: guest.lastName.trim(),
@@ -815,6 +870,16 @@ export default function CheckoutPage({
                       </span>
                       <span className="font-medium">{formatCurrency(roomSubtotal)}</span>
                     </div>
+
+                    {appliedOffer && discountAmount > 0 && (
+                      <div className="flex justify-between gap-4 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                        <span className="flex items-center gap-1">
+                          <Sparkles className="size-3" />
+                          {appliedOffer.title} ({appliedOffer.discount})
+                        </span>
+                        <span>- {formatCurrency(discountAmount)}</span>
+                      </div>
+                    )}
 
                     <div className="flex justify-between gap-4 text-xs text-muted-foreground">
                       <span>Taxes & fees</span>

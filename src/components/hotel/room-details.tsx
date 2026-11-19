@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { errorToast, successToast } from "@/components/ui/toast";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { DatePicker } from "@/components/ui/date-picker";
+import { getOfferById, getActiveOffers, type OfferItem } from "@/lib/settings-api";
 import {
   Select,
   SelectContent,
@@ -38,6 +39,7 @@ import {
   Wifi,
   X,
 } from "lucide-react";
+import { RoomReviewsModal } from "@/components/hotel/room-reviews-modal";
 import type { Room } from "@/types/room";
 import { formatCurrency } from "@/lib/utils";
 
@@ -58,6 +60,58 @@ export default function RoomDetails({
   initialGuests,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const offerIdParam = searchParams.get("offerId");
+  const [appliedOffer, setAppliedOffer] = useState<OfferItem | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function verifyOffer() {
+      if (offerIdParam) {
+        try {
+          const offer = await getOfferById(Number(offerIdParam));
+          const applies =
+            offer.isActive &&
+            ((offer.roomId && offer.roomId === room.id) ||
+              (offer.category &&
+                offer.category.toLowerCase() === room.category.toLowerCase()));
+          if (applies && isMounted) {
+            setAppliedOffer(offer);
+            return;
+          }
+        } catch {
+          // Fallback to active offers
+        }
+      }
+
+      getActiveOffers()
+        .then((offers) => {
+          if (!isMounted) return;
+          const matching = offers.find(
+            (o) =>
+              o.isActive &&
+              ((o.roomId && o.roomId === room.id) ||
+                (o.category &&
+                  o.category.toLowerCase() === room.category.toLowerCase()))
+          );
+          if (matching) {
+            setAppliedOffer(matching);
+          }
+        })
+        .catch(() => {});
+    }
+
+    verifyOffer();
+    return () => {
+      isMounted = false;
+    };
+  }, [offerIdParam, room.id, room.category]);
+
+  const effectiveNightlyRate = useMemo(() => {
+    if (!appliedOffer || !appliedOffer.discountPercentage) return room.price;
+    const discount = Math.round((room.price * appliedOffer.discountPercentage) / 100);
+    return Math.max(0, room.price - discount);
+  }, [room.price, appliedOffer]);
 
   const imageUrls = useMemo(() => {
     if (room.images && room.images.length > 0) {
@@ -68,6 +122,7 @@ export default function RoomDetails({
 
   const [activeImage, setActiveImage] = useState(0);
   const [lightbox, setLightbox] = useState(false);
+  const [isReviewsModalOpen, setIsReviewsModalOpen] = useState(false);
 
   const [checkInDate, setCheckInDate] = useState<Date | undefined>(() =>
     parseDateString(initialCheckIn)
@@ -146,6 +201,10 @@ export default function RoomDetails({
     if (checkOutDate) params.set("checkOut", formatDateToDDMMYYYY(checkOutDate));
 
     params.set("guests", String(guests));
+
+    if (appliedOffer) {
+      params.set("offerId", String(appliedOffer.id));
+    }
 
     router.push(`/checkout?${params.toString()}`);
   };
@@ -233,12 +292,24 @@ export default function RoomDetails({
                 {room.category}
               </span>
 
-              <div className="flex items-center gap-1 text-sm">
-                <Star className="size-4 fill-amber-500 text-amber-500" />
-                <strong>{room.averageRating || 5.0}</strong>
-                <span className="text-muted-foreground">
-                  ({room.totalReviews || 0} reviews)
-                </span>
+              <div className="flex items-center gap-2.5 text-sm">
+                <div className="flex items-center gap-1">
+                  <Star className="size-4 fill-amber-500 text-amber-500" />
+                  <strong>{room.averageRating ? room.averageRating.toFixed(1) : "5.0"}</strong>
+                  <span className="text-muted-foreground">
+                    ({room.totalReviews || 0} reviews)
+                  </span>
+                </div>
+
+                <span className="text-border">•</span>
+
+                <button
+                  type="button"
+                  onClick={() => setIsReviewsModalOpen(true)}
+                  className="text-xs font-semibold text-primary hover:underline underline-offset-2 transition cursor-pointer"
+                >
+                  See reviews
+                </button>
               </div>
             </div>
 
@@ -348,12 +419,43 @@ export default function RoomDetails({
           {/* Booking card */}
           <aside className="lg:sticky lg:top-24">
             <div className="rounded-3xl border border-border bg-card p-5 shadow-sm sm:p-6">
+              {appliedOffer && (
+                <div className="mb-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <Star className="size-3.5 fill-amber-400 text-amber-400" />
+                    Special Offer Applied: {appliedOffer.title}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {appliedOffer.discount} automatically applied to your booking rate.
+                  </p>
+                </div>
+              )}
+
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <span className="text-3xl font-semibold text-foreground">
-                    {formatCurrency(room.price)}
-                  </span>
-                  <span className="text-sm text-muted-foreground"> / night</span>
+                  {appliedOffer ? (
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground line-through">
+                          {formatCurrency(room.price)}
+                        </span>
+                        <span className="text-3xl font-semibold text-emerald-600 dark:text-emerald-400">
+                          {formatCurrency(effectiveNightlyRate)}
+                        </span>
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          {appliedOffer.discount}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">per night with offer</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-3xl font-semibold text-foreground">
+                        {formatCurrency(room.price)}
+                      </span>
+                      <span className="text-sm text-muted-foreground"> / night</span>
+                    </div>
+                  )}
                 </div>
 
                 <span className="text-sm text-muted-foreground">
@@ -488,6 +590,16 @@ export default function RoomDetails({
           </div>
         </div>
       )}
+
+      {/* Guest Reviews Modal */}
+      <RoomReviewsModal
+        open={isReviewsModalOpen}
+        roomId={room.id}
+        roomName={room.name}
+        averageRating={room.averageRating}
+        totalReviews={room.totalReviews}
+        onClose={() => setIsReviewsModalOpen(false)}
+      />
     </main>
   );
 }

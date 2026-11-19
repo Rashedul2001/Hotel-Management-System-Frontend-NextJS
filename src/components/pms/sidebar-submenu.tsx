@@ -27,7 +27,7 @@ export function SidebarSubmenu({
       className="relative ml-5 mt-1 space-y-0.5 border-l border-border/60 pl-3.5"
     >
       {items.map((subItem) => {
-        const isActive = isRouteActive(subItem.href, pathname);
+        const isActive = isRouteActive(subItem.href, pathname, true);
 
         return (
           <li key={subItem.id}>

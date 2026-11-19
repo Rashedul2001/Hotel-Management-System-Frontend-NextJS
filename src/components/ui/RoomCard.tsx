@@ -25,6 +25,7 @@ const RoomCard = ({ room, view, checkInDate, checkOutDate, guests }: RoomCardPro
     const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : "";
 
     const checkoutUrl = `/checkout?room=${room.id}${checkInDate ? `&checkIn=${encodeURIComponent(checkInDate)}` : ""}${checkOutDate ? `&checkOut=${encodeURIComponent(checkOutDate)}` : ""}${guests ? `&guests=${encodeURIComponent(String(guests))}` : ""}`;
+    const mainImageUrl = room.images?.at(0)?.imageUrl || "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=85";
 
     return (
 
@@ -51,7 +52,7 @@ const RoomCard = ({ room, view, checkInDate, checkOutDate, guests }: RoomCardPro
           `}
             >
                 <Image
-                    src={room.images.at(0)?.imageUrl || ""}
+                    src={mainImageUrl}
                     alt={`${room.name} at Velora Hotels`}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-700"
@@ -110,17 +111,28 @@ const RoomCard = ({ room, view, checkInDate, checkOutDate, guests }: RoomCardPro
                 </div>
 
                 {/* Rating */}
-                <div className="flex items-center gap-2 mt-3 text-sm">
-                    <span className="font-semibold">
-                        {room.averageRating}
-                    </span>
+                <div className="flex items-center gap-2 mt-3 text-xs sm:text-sm">
+                    <div className="flex items-center text-amber-500">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                            <span
+                                key={s}
+                                className={
+                                    s <= Math.round(room.averageRating || 5)
+                                        ? "text-amber-500"
+                                        : "text-muted-foreground/30"
+                                }
+                            >
+                                ★
+                            </span>
+                        ))}
+                    </div>
 
-                    <span className="text-amber-500">
-                        ★★★★★
+                    <span className="font-semibold text-foreground">
+                        {room.averageRating ? room.averageRating.toFixed(1) : "5.0"}
                     </span>
 
                     <span className="text-muted-foreground">
-                        ({room.totalReviews} reviews)
+                        ({room.totalReviews || 0} reviews)
                     </span>
                 </div>
 

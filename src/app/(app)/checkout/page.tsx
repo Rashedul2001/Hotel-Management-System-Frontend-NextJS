@@ -16,6 +16,7 @@ type Props = {
     checkOutDate?: string;
     guests?: string;
     error?: string;
+    offerId?: string;
   }>;
 };
 
@@ -29,6 +30,7 @@ export default async function Page({ searchParams }: Props) {
       checkOut={params.checkOut ?? params.checkOutDate ?? ""}
       guests={Number(params.guests ?? 1)}
       initialError={params.error ?? ""}
+      offerId={params.offerId}
     />
   );
 }

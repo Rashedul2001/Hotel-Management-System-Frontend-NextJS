@@ -7,6 +7,7 @@ export type RoomPayload = {
   category: string;
   floor: number;
   status: RoomStatus;
+  isFeatured?: boolean;
   price: number;
   capacity: number;
   bedCount: number;
@@ -263,6 +264,7 @@ function createRoomFormData(payload: RoomPayload, images: File[] = []): FormData
   formData.append("floor", String(Number.isFinite(floorVal) ? floorVal : 1));
 
   formData.append("status", payload.status || "Available");
+  formData.append("isFeatured", String(Boolean(payload.isFeatured)));
 
   const priceVal = Math.round(Number(payload.price));
   formData.append("price", String(Number.isFinite(priceVal) && priceVal > 0 ? priceVal : 1000));
@@ -389,4 +391,32 @@ export async function fetchRoomSummaryCounts(): Promise<AdminRoomsResponse["summ
   const response = await apiFetch("/api/rooms/summary-counts");
   if (!response.ok) return undefined;
   return response.json();
+}
+
+export async function toggleRoomFeatured(
+  id: string,
+  isFeatured?: boolean,
+): Promise<Room> {
+  const response = await apiFetch(`/api/rooms/${id}/featured`, {
+    method: "PATCH",
+    body: JSON.stringify({ isFeatured }),
+  });
+
+  return extractRoom(
+    await readResponse<unknown>(response, "Unable to update featured status."),
+  );
+}
+
+export async function updateRoomPrice(
+  id: string,
+  price: number,
+): Promise<Room> {
+  const response = await apiFetch(`/api/rooms/${id}/price`, {
+    method: "PATCH",
+    body: JSON.stringify({ price }),
+  });
+
+  return extractRoom(
+    await readResponse<unknown>(response, "Unable to update room price."),
+  );
 }

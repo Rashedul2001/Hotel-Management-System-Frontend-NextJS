@@ -11,6 +11,7 @@ import {
   getRooms,
   updateRoom,
   updateRoomStatus,
+  toggleRoomFeatured,
   type RoomPayload,
 } from "@/lib/admin-rooms-api";
 import type { Room, RoomStatus } from "@/types/room";
@@ -162,6 +163,7 @@ export function RoomsPageContent() {
         category: values.category.trim(),
         floor: Math.floor(Number(values.floor)),
         status: values.status,
+        isFeatured: Boolean(values.isFeatured),
         price: Number(values.price),
         capacity: Math.floor(Number(values.capacity)),
         bedCount: Math.floor(Number(values.bedCount)),
@@ -225,6 +227,27 @@ export function RoomsPageContent() {
       const msg =
         err instanceof Error ? err.message : "Unable to update status.";
       errorToast("Status Error", msg);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Fast Featured Toggle Action from Table
+  const handleToggleFeatured = async (room: Room) => {
+    try {
+      setActionLoading(true);
+      const updated = await toggleRoomFeatured(room.id, !room.isFeatured);
+      setRooms((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      );
+      successToast(
+        updated.isFeatured ? "Room Featured" : "Room Unfeatured",
+        `Room ${room.roomNumber} is ${updated.isFeatured ? "now featured on landing page" : "removed from featured rooms"}.`
+      );
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Unable to toggle featured status.";
+      errorToast("Featured Error", msg);
     } finally {
       setActionLoading(false);
     }
@@ -296,6 +319,7 @@ export function RoomsPageContent() {
             onEdit={handleOpenEdit}
             onDelete={handleOpenDelete}
             onStatusChange={handleStatusChange}
+            onToggleFeatured={handleToggleFeatured}
           />
 
           {!loading && !error && rooms.length > 0 && (
@@ -327,6 +351,7 @@ export function RoomsPageContent() {
                   category: editingRoom.category,
                   floor: editingRoom.floor,
                   status: editingRoom.status as RoomStatus,
+                  isFeatured: editingRoom.isFeatured,
                   price: editingRoom.price,
                   capacity: editingRoom.capacity,
                   bedCount: editingRoom.bedCount,
